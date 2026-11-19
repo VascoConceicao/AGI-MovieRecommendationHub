@@ -1,0 +1,52 @@
+# Loki in single-binary mode: one replica, 1 GiB local-path PVC (survives
+# Pod restarts, deleted with the release), 48h compactor retention.
+# Sized for 3x2GiB nodes; consistent with the declared
+# ephemeral-monitoring choice.
+deploymentMode: SingleBinary
+backend:
+  replicas: 0
+read:
+  replicas: 0
+write:
+  replicas: 0
+loki:
+  auth_enabled: false
+  # Test schema: no long-term persistence by design.
+  useTestSchema: true
+  # 48h retention enforced by the compactor (verified running via
+  # loki_compactor_* series); without this the 1Gi PVC fills in weeks.
+  compactor:
+    working_directory: /var/loki/compactor
+    retention_enabled: true
+    delete_request_store: filesystem
+  limits_config:
+    retention_period: 48h
+  commonConfig:
+    replication_factor: 1
+  storage:
+    type: filesystem
+singleBinary:
+  replicas: 1
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClass: local-path
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+chunksCache:
+  enabled: false
+resultsCache:
+  enabled: false
+memcached:
+  enabled: false
+gateway:
+  enabled: false
+lokiCanary:
+  enabled: false
+test:
+  enabled: false

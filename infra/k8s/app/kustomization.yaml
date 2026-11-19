@@ -1,0 +1,40 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: g15-app
+
+# Secret names must stay stable: Deployments reference g15-db-passwords
+# by literal name, so the content hash suffix is disabled.
+generatorOptions:
+  disableNameSuffixHash: true
+
+resources:
+  - configmap.yaml
+  - databases/movie.yaml
+  - databases/recommendation.yaml
+  - databases/user.yaml
+  - movie/deployment.yaml
+  - movie/posters-pvc.yaml
+  - movie/service.yaml
+  - recommendation/deployment.yaml
+  - recommendation/service.yaml
+  - agent/cronjob.yaml
+  - user/deployment.yaml
+  - user/service.yaml
+  - inference/deployment.yaml
+  - inference/service.yaml
+  - inference/pvc.yaml
+  - inference/networkpolicy.yaml
+  - frontend/deployment.yaml
+  - frontend/service.yaml
+  - proxy/deployment.yaml
+  - proxy/service.yaml
+  - proxy/ingress.yaml
+
+# Passwords come from db-passwords.env (gitignored). Copy
+# db-passwords.env.example and fill real values before applying:
+#   cp db-passwords.env.example db-passwords.env
+secretGenerator:
+  - name: g15-db-passwords
+    envs:
+      - db-passwords.env

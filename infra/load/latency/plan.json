@@ -1,0 +1,9 @@
+[
+ {"case": "broad5",  "filters": {"count": 5}},
+ {"case": "narrow5", "filters": {"count": 5, "genres": ["Action"], "duration": "epic"}},
+ {"case": "broad5",  "filters": {"count": 5}},
+ {"case": "narrow5", "filters": {"count": 5, "genres": ["Action"], "duration": "epic"}},
+ {"case": "broad5",  "filters": {"count": 5}},
+ {"case": "narrow5", "filters": {"count": 5, "genres": ["Action"], "duration": "epic"}},
+ {"case": "broad20", "filters": {"count": 20}}
+]

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Run Tests"
+  short_description: "Run project tests and report coverage totals"
+  default_prompt: "Use $run-tests to run all project tests and report totals."

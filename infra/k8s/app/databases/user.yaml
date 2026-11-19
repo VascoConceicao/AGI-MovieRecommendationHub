@@ -1,0 +1,81 @@
+# Dedicated database for the user service. Never accessed directly by
+# other services. Same persistence limitation as movie-db.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: user-db
+spec:
+  serviceName: user-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-db
+  template:
+    metadata:
+      labels:
+        app: user-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:18-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: g15-app-config
+                  key: USER_DB_NAME
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: g15-app-config
+                  key: USER_DB_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: g15-db-passwords
+                  key: USER_DB_PASSWORD
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "users", "-d", "users"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 5432
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-db
+  labels:
+    app.kubernetes.io/part-of: g15
+spec:
+  type: ClusterIP
+  selector:
+    app: user-db
+  ports:
+    - port: 5432
+      targetPort: 5432

@@ -1,0 +1,20 @@
+info:
+  name: Watched
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: http://127.0.0.1:4205/api/user/admin/reset-user-db
+  body:
+    type: json
+    data: '{"table": "watched_movies"}'
+  auth:
+    type: bearer
+    token: "{{resetToken}}"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

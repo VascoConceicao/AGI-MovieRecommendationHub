@@ -1,0 +1,24 @@
+<label [for]="id">{{ label() }}</label>
+<div class="input-wrap">
+  <input [id]="id" [value]="query()" [placeholder]="placeholder()" [disabled]="disabled() || (multiple() && values().length >= max())" maxlength="200" autocomplete="off"
+    [attr.role]="freeText() ? null : 'combobox'" [attr.aria-expanded]="freeText() ? null : opened()"
+    [attr.aria-controls]="freeText() ? null : id + '-options'" [attr.aria-autocomplete]="freeText() ? null : 'list'"
+    [attr.aria-activedescendant]="opened() && matches().length ? id + '-option-' + active() : null"
+    (input)="edit($any($event.target).value)" (focus)="opened.set(!freeText())" (click)="opened.set(!freeText())" (keydown)="key($event)" />
+  @if (!freeText()) { <svg class="chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7 5 5 5-5" /></svg> }
+</div>
+@if (opened() && !freeText() && !disabled()) {
+  <div class="options" role="listbox" [id]="id + '-options'" [attr.aria-label]="label()">
+    @for (option of matches(); track option.value; let i = $index) {
+      <button type="button" role="option" tabindex="-1" [id]="id + '-option-' + i" [class.active]="active() === i" [attr.aria-selected]="values().includes(option.value)"
+        (pointerdown)="$event.preventDefault()" (click)="choose(option.value)">{{ option.label }}</button>
+    } @empty { <span class="empty">No matches</span> }
+  </div>
+}
+@if (multiple() && values().length) {
+  <div class="selections">
+    @for (value of values(); track value) {
+      <span class="chip">{{ labelFor(value) }}<button type="button" [disabled]="disabled()" [attr.aria-label]="'Remove ' + labelFor(value)" (click)="remove(value)"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4 4 8 8m0-8-8 8" /></svg></button></span>
+    }
+  </div>
+}

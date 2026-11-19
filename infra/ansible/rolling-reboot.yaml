@@ -1,0 +1,119 @@
+---
+# Rolling reboot: workers first, control plane last, strictly one node
+# at a time. Encodes the operational rule "never power-cycle the whole
+# cluster" (~2 min per node, service stays up on survivors).
+#
+# Database pods ride through in place: their local-path PVCs are bound
+# to the node's PV, so they are excluded from the drain and restart
+# with kubelet after boot. Everything else is evicted and reschedules.
+#
+# Example (from infra/ansible/):
+#   ansible-playbook rolling-reboot.yaml
+# GCE:
+#   ansible-playbook -i inventory.gcp.ini rolling-reboot.yaml \
+#     -e kubeconfig_path=<repo>/infra/terraform/cluster-gcp/kubeconfig.out
+- name: Rolling reboot of worker nodes
+  hosts: workers
+  serial: 1
+  become: true
+  any_errors_fatal: true
+
+  vars:
+    kubeconfig_path: "{{ playbook_dir }}/../terraform/cluster/kubeconfig.out"
+    apiserver_host: "{{ hostvars[groups['control_plane'][0]].ansible_host }}"
+
+  tasks:
+    - name: Drain node (database pods ride through on local storage)
+      ansible.builtin.command:
+        cmd: >
+          kubectl --kubeconfig={{ kubeconfig_path }}
+          drain {{ inventory_hostname }}
+          --ignore-daemonsets --delete-emptydir-data --force
+          --pod-selector='app notin (movie-db, recommendation-db, user-db)'
+          --timeout=180s
+      delegate_to: localhost
+      become: false
+
+    - name: Reboot node
+      ansible.builtin.reboot:
+        reboot_timeout: 600
+
+    - name: Wait for API server port
+      ansible.builtin.wait_for:
+        host: "{{ apiserver_host }}"
+        port: 6443
+        delay: 30
+        timeout: 600
+      delegate_to: localhost
+      become: false
+
+    - name: Wait for node Ready
+      ansible.builtin.command:
+        cmd: >
+          kubectl --kubeconfig={{ kubeconfig_path }}
+          wait --for=condition=Ready node/{{ inventory_hostname }}
+          --timeout=600s
+      delegate_to: localhost
+      become: false
+      changed_when: false
+
+    - name: Uncordon node
+      ansible.builtin.command:
+        cmd: >
+          kubectl --kubeconfig={{ kubeconfig_path }}
+          uncordon {{ inventory_hostname }}
+      delegate_to: localhost
+      become: false
+
+- name: Reboot control plane last
+  hosts: control_plane
+  serial: 1
+  become: true
+  any_errors_fatal: true
+
+  vars:
+    kubeconfig_path: "{{ playbook_dir }}/../terraform/cluster/kubeconfig.out"
+    apiserver_host: "{{ ansible_host }}"
+
+  tasks:
+    - name: Drain node (database pods ride through on local storage)
+      ansible.builtin.command:
+        cmd: >
+          kubectl --kubeconfig={{ kubeconfig_path }}
+          drain {{ inventory_hostname }}
+          --ignore-daemonsets --delete-emptydir-data --force
+          --pod-selector='app notin (movie-db, recommendation-db, user-db)'
+          --timeout=180s
+      delegate_to: localhost
+      become: false
+
+    - name: Reboot node
+      ansible.builtin.reboot:
+        reboot_timeout: 600
+
+    - name: Wait for API server port
+      ansible.builtin.wait_for:
+        host: "{{ apiserver_host }}"
+        port: 6443
+        delay: 30
+        timeout: 600
+      delegate_to: localhost
+      become: false
+
+    - name: Wait for node Ready
+      ansible.builtin.command:
+        cmd: >
+          kubectl --kubeconfig={{ kubeconfig_path }}
+          wait --for=condition=Ready node/{{ inventory_hostname }}
+          --timeout=600s
+      delegate_to: localhost
+      become: false
+      changed_when: false
+
+    - name: Uncordon node
+      ansible.builtin.command:
+        cmd: >
+          kubectl --kubeconfig={{ kubeconfig_path }}
+          uncordon {{ inventory_hostname }}
+      delegate_to: localhost
+      become: false

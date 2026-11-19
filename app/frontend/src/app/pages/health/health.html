@@ -1,0 +1,16 @@
+<main>
+  <p class="eyebrow">g15 ? Movie Recommendation Hub</p>
+  <h1>Connection status</h1>
+  <p>Check that each service can reach its database.</p>
+  <button type="button" (click)="refresh()" [disabled]="pending() > 0">
+    {{ pending() > 0 ? 'Checking?' : 'Check again' }}
+  </button>
+  <ul aria-live="polite" aria-label="Service connections">
+    @for (service of services; track service.key) {
+      <li [attr.data-state]="states()[service.key]">
+        <h2>{{ service.label }}</h2>
+        <p>{{ labels[states()[service.key]] }}</p>
+      </li>
+    }
+  </ul>
+</main>

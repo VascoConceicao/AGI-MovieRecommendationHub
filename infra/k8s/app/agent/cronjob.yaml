@@ -1,0 +1,87 @@
+# Proactive background agent: one `flask agent-scan` every few minutes. A scan only queues source='auto' generations in the
+# shared queue (the Recommendation Service worker runs them, deterministically while AUTO_INFERENCE_ENABLED=false); it never
+# runs the pipeline and never talks to the inference server. Ships SUSPENDED: activate it deliberately (see README).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: recommendation-agent
+  labels:
+    app: recommendation-agent
+spec:
+  suspend: true
+  schedule: "*/3 * * * *"           # <= AGENT_MAX_QUEUED (4) users per scan: 80/hour, ~1,900/day for ~1,000 users with a 24 h refresh
+  concurrencyPolicy: Forbid         # never two scans at once (the agent also holds a database advisory lock)
+  startingDeadlineSeconds: 120      # a missed run is skipped, not replayed in a burst
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0               # no in-run retry: the next scheduled scan is the retry
+      activeDeadlineSeconds: 120    # a scan takes seconds; kill a hung one well before the next
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app: recommendation-agent       # deliberately NOT app=recommendation-service: it must never reach the inference Pod
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          containers:
+            - name: agent-scan
+              image: g15-recommendation-service:local
+              imagePullPolicy: Never
+              command: ["python", "-m", "flask", "--app", "main:create_app", "agent-scan"]
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ["ALL"]
+                seccompProfile:
+                  type: RuntimeDefault
+              env:
+                - name: USER_SERVICE_URL
+                  value: "http://user-service:4208"
+                - name: AGENT_CONTEXT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: g15-agent-context
+                      key: AGENT_CONTEXT_TOKEN
+                - name: AGENT_REFRESH_HOURS
+                  value: "24"
+                - name: AGENT_RETRY_COOLDOWN_MINUTES
+                  value: "60"
+                - name: AGENT_MAX_QUEUED          # GENERATION_MAX_QUEUED is 5: one slot always stays free for a user request
+                  value: "4"
+                - name: RECOMMENDATION_DB_USER
+                  valueFrom:
+                    configMapKeyRef:
+                      name: g15-app-config
+                      key: RECOMMENDATION_DB_USER
+                - name: RECOMMENDATION_DB_NAME
+                  valueFrom:
+                    configMapKeyRef:
+                      name: g15-app-config
+                      key: RECOMMENDATION_DB_NAME
+                - name: RECOMMENDATION_DB_HOST
+                  valueFrom:
+                    configMapKeyRef:
+                      name: g15-app-config
+                      key: RECOMMENDATION_DB_HOST
+                - name: RECOMMENDATION_DB_PORT
+                  valueFrom:
+                    configMapKeyRef:
+                      name: g15-app-config
+                      key: RECOMMENDATION_DB_PORT
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: g15-db-passwords
+                      key: RECOMMENDATION_DB_PASSWORD
+                - name: DATABASE_URL
+                  value: "postgresql://$(RECOMMENDATION_DB_USER):$(DB_PASSWORD)@$(RECOMMENDATION_DB_HOST):$(RECOMMENDATION_DB_PORT)/$(RECOMMENDATION_DB_NAME)"
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: 250m
+                  memory: 256Mi

@@ -1,0 +1,19 @@
+# Two new namespaces for the CD runners. Baseline Pod Security is ENFORCED so a runner misconfiguration can never create a
+# privileged / hostPath / hostNetwork job pod here. (Kaniko runs as root with the default capability set, which baseline allows.)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: g15-build
+  labels:
+    app.kubernetes.io/part-of: g15-ci
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: baseline
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: g15-cd
+  labels:
+    app.kubernetes.io/part-of: g15-ci
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: baseline

@@ -1,0 +1,247 @@
+# Delivery jobs: build and publish container images from the cluster's build runner (g15-build, tag g15-build).
+# Included by .gitlab-ci.yml AFTER pipeline.yml, so Vasco's test jobs and the 'test' stage are untouched.
+#   development : only the MANUAL smoke jobs (nothing is built, published or deployed)
+#   master      : tests -> build (Kaniko, no push) -> publish (Skopeo) ; a failed test blocks every later stage
+# deploy      : master only. deploy:dry-run runs automatically; deploy:production is MANUAL until the protected CI/CD variable
+#               CD_AUTO_DEPLOY is set to "true"; deploy:rollback is manual. All three run on the deploy runner (tag g15-deploy).
+stages: [test, build, publish, deploy]      # superset of pipeline.yml's [test]; this file must be included after it
+
+.master-push:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "master" && $CI_COMMIT_REF_PROTECTED == "true"'
+
+.smoke-rules:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && ($CI_COMMIT_BRANCH == "development" || $CI_COMMIT_BRANCH == "master") && $CI_COMMIT_REF_PROTECTED == "true"'
+      when: manual
+      allow_failure: true
+
+.kaniko:
+  tags: [g15-build]
+  image:
+    name: registry.gitlab.com/gitlab-ci-utils/container-images/kaniko@sha256:7795cec509a50a71378cc2c365f55c555ee3a05834d8eb1cd2552df5e66d44d8
+    entrypoint: [""]
+  variables:
+    GIT_DEPTH: "1"
+
+.skopeo:
+  tags: [g15-build]
+  image:
+    name: quay.io/skopeo/stable@sha256:2b7d76dde38c5924e1945348840c58786fc192201f2fd545832e58b53d26f7b8
+    entrypoint: [""]
+  variables:
+    GIT_STRATEGY: none                  # publishing needs only the artifact, not the source
+
+# --- build: Kaniko, unprivileged, NO registry credentials needed, output is an image archive (artifact) -----------------------
+.build-image:
+  extends: [.kaniko, .master-push]
+  stage: build
+  timeout: 45 minutes
+  variables:
+    CONTEXT_DIR: ""
+  script:
+    - mkdir -p out
+    - >
+      /kaniko/executor --context "dir://${CI_PROJECT_DIR}/${CONTEXT_DIR}" --dockerfile "${CI_PROJECT_DIR}/${DOCKERFILE}"
+      --no-push --tar-path "out/${COMPONENT}.tar" --destination "g15-${COMPONENT}:sha-${CI_COMMIT_SHA}"
+      --digest-file "out/${COMPONENT}.manifest-digest" --label "org.opencontainers.image.revision=${CI_COMMIT_SHA}"
+      --label "org.opencontainers.image.source=${CI_PROJECT_URL}" --label "g15.build=${CI_COMMIT_SHORT_SHA}"
+    - test -s "out/${COMPONENT}.tar"
+    - echo "built ${COMPONENT} archive $(wc -c < out/${COMPONENT}.tar) bytes, kaniko manifest digest $(cat out/${COMPONENT}.manifest-digest)"
+  artifacts:
+    paths: [out/]
+    expire_in: 1 day
+
+# --- publish: Skopeo copies the archive to the project registry with the per-job token; the tag is immutable (never overwritten) -
+.publish-image:
+  extends: [.skopeo, .master-push]
+  stage: publish
+  interruptible: false                  # never cancel half-way through a push
+  timeout: 20 minutes
+  script:
+    - |
+      set -u
+      AUTH="$(mktemp)"
+      trap 'rm -f "$AUTH" existing.json verify.json digest.txt err.txt' EXIT      # the credential file never survives, even if the job fails
+      # only the credential file is private; published/ must stay readable for the runner's artifact upload
+      ( umask 077; printf '{"auths":{"%s":{"auth":"%s"}}}' "$CI_REGISTRY" "$(printf '%s:%s' "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD" | base64 -w0)" > "$AUTH" )
+      REPO="${CI_REGISTRY_IMAGE}/${COMPONENT}"
+      TAG="sha-${CI_COMMIT_SHA}"
+      ARCHIVE="docker-archive:out/${COMPONENT}.tar:g15-${COMPONENT}:${TAG}"
+      # the commit an image was built from, read from its OCI revision label (works for compact or indented JSON)
+      revision() { grep -o '"org.opencontainers.image.revision": *"[0-9a-f]*"' | grep -o '[0-9a-f]\{40\}' | head -1 || true; }
+      ARCHIVE_REV="$(skopeo inspect --config "$ARCHIVE" | revision)"
+      [ "$ARCHIVE_REV" = "$CI_COMMIT_SHA" ] || { echo "FAIL: the built archive says revision '$ARCHIVE_REV', expected $CI_COMMIT_SHA"; exit 1; }
+      if skopeo inspect --raw --authfile "$AUTH" "docker://$REPO:$TAG" > existing.json 2> err.txt; then
+        EXISTING_REV="$(skopeo inspect --config --authfile "$AUTH" "docker://$REPO:$TAG" | revision)"
+        [ "$EXISTING_REV" = "$CI_COMMIT_SHA" ] || { echo "FAIL: tag $TAG already exists but is revision '$EXISTING_REV', expected $CI_COMMIT_SHA - refusing to overwrite or reuse it"; exit 1; }
+        echo "tag $TAG already exists with the expected revision: NOT overwriting, reusing it"
+        DIGEST="sha256:$(sha256sum existing.json | cut -d' ' -f1)"
+      elif grep -qiE 'manifest unknown|name unknown|not known to registry|not found|404' err.txt; then
+        skopeo copy --authfile "$AUTH" --digestfile digest.txt "$ARCHIVE" "docker://$REPO:$TAG"
+        DIGEST="$(cat digest.txt)"
+      else
+        echo "FAIL: cannot tell whether $TAG exists (not a plain 'not found'), so nothing is pushed:"
+        sed -E 's/[Bb]earer [^ ]+/Bearer <redacted>/g' err.txt | head -3
+        exit 1
+      fi
+      skopeo inspect --raw --authfile "$AUTH" "docker://$REPO@$DIGEST" > verify.json
+      test "sha256:$(sha256sum verify.json | cut -d' ' -f1)" = "$DIGEST"
+      FINAL_REV="$(skopeo inspect --config --authfile "$AUTH" "docker://$REPO@$DIGEST" | revision)"
+      [ "$FINAL_REV" = "$CI_COMMIT_SHA" ] || { echo "FAIL: published image revision '$FINAL_REV', expected $CI_COMMIT_SHA"; exit 1; }
+      mkdir -p published
+      printf '{"component":"%s","repository":"%s","tag":"%s","digest":"%s","commit":"%s"}\n' "$COMPONENT" "$REPO" "$TAG" "$DIGEST" "$CI_COMMIT_SHA" > "published/${COMPONENT}.json"
+      echo "published $REPO@$DIGEST (revision $CI_COMMIT_SHA)"
+  artifacts:
+    paths: [published/]
+    expire_in: 30 days
+
+# One build + one publish job per image. The runner has limit=1, so builds run one at a time.
+build:frontend:      {extends: .build-image, variables: {COMPONENT: frontend,               DOCKERFILE: app/frontend/Dockerfile}}
+build:proxy:         {extends: .build-image, variables: {COMPONENT: proxy,                  DOCKERFILE: app/proxy/Dockerfile}}
+build:user-service:  {extends: .build-image, variables: {COMPONENT: user-service,           DOCKERFILE: app/backend/user-service/Dockerfile}}
+build:movie-service: {extends: .build-image, variables: {COMPONENT: movie-service,          DOCKERFILE: app/backend/movie-service/Dockerfile}}
+build:recommendation-service: {extends: .build-image, variables: {COMPONENT: recommendation-service, DOCKERFILE: app/backend/recommendation-service/Dockerfile}}
+build:ci-tools:      {extends: .build-image, variables: {COMPONENT: ci-tools, DOCKERFILE: infra/ci-cd/ci-tools/Dockerfile, CONTEXT_DIR: infra/ci-cd/ci-tools}}
+
+publish:frontend:      {extends: .publish-image, needs: ["build:frontend"],      variables: {COMPONENT: frontend}}
+publish:proxy:         {extends: .publish-image, needs: ["build:proxy"],         variables: {COMPONENT: proxy}}
+publish:user-service:  {extends: .publish-image, needs: ["build:user-service"],  variables: {COMPONENT: user-service}}
+publish:movie-service: {extends: .publish-image, needs: ["build:movie-service"], variables: {COMPONENT: movie-service}}
+publish:recommendation-service: {extends: .publish-image, needs: ["build:recommendation-service"], variables: {COMPONENT: recommendation-service}}
+publish:ci-tools:      {extends: .publish-image, needs: ["build:ci-tools"],      variables: {COMPONENT: ci-tools}}
+
+# --- deploy: the deploy runner (ServiceAccount ci-deployer, namespace-bound RBAC + admission policy; see infra/ci-cd/scripts/deploy.sh) ---------
+# ci-tools image: published by master pipeline #245513 (commit 73bea44e07bf1b98e527eeacde3da3c01ac4b2dc), digest verified against the registry.
+# It must equal the digest in the deploy runner's allowed_images (infra/ci-cd/cluster/values-deploy.yaml); update both together.
+.deploy-runner:
+  tags: [g15-deploy]
+  image:
+    name: registry.rnl.tecnico.ulisboa.pt/psia/groups26/g15/ci-tools@sha256:6f8f2269134bb9241adb6d09fb5e39425359c7bda20bb5edf242c9a84a9adae4
+    entrypoint: [""]
+  interruptible: false                  # a newer pipeline must never cancel a half-finished deployment
+  variables:
+    GIT_DEPTH: "0"                      # the script compares commits (stale-pipeline guard, per-component change detection)
+
+.deploy-needs:
+  needs:                                # deployment depends on EVERY image being published (and, through the stages, on every test)
+    - publish:frontend
+    - publish:proxy
+    - publish:user-service
+    - publish:movie-service
+    - publish:recommendation-service
+    - publish:ci-tools
+
+deploy:dry-run:                         # automatic on master: all checks + server-side dry-run patches, changes nothing
+  extends: [.deploy-runner, .deploy-needs, .master-push]
+  stage: deploy
+  timeout: 15 minutes
+  script:
+    - sh infra/ci-cd/scripts/deploy.sh dry-run
+  allow_failure:
+    exit_codes: 75                      # 75 = a newer master pipeline superseded this one
+
+deploy:production:
+  extends: [.deploy-runner]
+  stage: deploy
+  needs:                                # every image published AND a successful dry-run of THIS pipeline
+    - deploy:dry-run
+    - publish:frontend
+    - publish:proxy
+    - publish:user-service
+    - publish:movie-service
+    - publish:recommendation-service
+    - publish:ci-tools
+  resource_group: production            # one deployment at a time; the script also holds its own lock in the cd-state ConfigMap
+  timeout: 40 minutes
+  variables:
+    DEPLOY_COMPONENTS: ""               # empty = CD_COMPONENTS (a CI/CD variable), default 'frontend'. When playing the job you may set: all | frontend proxy ...
+  allow_failure:
+    exit_codes: 75
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "master" && $CI_COMMIT_REF_PROTECTED == "true" && $CD_AUTO_DEPLOY == "true"'
+      when: on_success
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "master" && $CI_COMMIT_REF_PROTECTED == "true"'
+      when: manual
+      allow_failure: true
+  script:
+    - sh infra/ci-cd/scripts/deploy.sh deploy
+
+deploy:rollback:                        # manual only; restores the state recorded before the last deployment
+  extends: [.deploy-runner]
+  stage: deploy
+  needs: []
+  resource_group: production
+  timeout: 30 minutes
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "master" && $CI_COMMIT_REF_PROTECTED == "true"'
+      when: manual
+      allow_failure: true
+  script:
+    - sh infra/ci-cd/scripts/deploy.sh rollback
+
+# --- smoke jobs: MANUAL (start them with the play button), harmless, never publish or deploy anything ------------------------
+smoke:runner:
+  extends: [.kaniko, .smoke-rules]
+  stage: test
+  timeout: 10 minutes
+  script:
+    - echo "runner $CI_RUNNER_ID ($CI_RUNNER_DESCRIPTION) tags=$CI_RUNNER_TAGS"
+    - echo "ref=$CI_COMMIT_REF_NAME protected=$CI_COMMIT_REF_PROTECTED source=$CI_PIPELINE_SOURCE sha=$CI_COMMIT_SHORT_SHA"
+    - echo "registry=$CI_REGISTRY image_path=$CI_REGISTRY_IMAGE"
+    - id; hostname
+    - 'ls /var/run/secrets/kubernetes.io/serviceaccount 2>&1 | head -1 || true'
+    - 'echo "memory.max=$(cat /sys/fs/cgroup/memory.max 2>/dev/null)"'
+    - /kaniko/executor version
+
+smoke:kaniko-build:
+  extends: [.kaniko, .smoke-rules]
+  stage: test
+  timeout: 20 minutes
+  script:
+    - mkdir -p out
+    - /kaniko/executor --context "dir://${CI_PROJECT_DIR}/infra/ci-cd/ci-tools" --dockerfile "${CI_PROJECT_DIR}/infra/ci-cd/ci-tools/Dockerfile" --no-push --tar-path out/ci-tools-smoke.tar --destination g15-ci-tools:smoke --digest-file out/ci-tools-smoke.digest
+    - test -s out/ci-tools-smoke.tar && ls -l out/
+  artifacts:
+    paths: [out/]
+    expire_in: 1 hour
+
+smoke:registry-auth:
+  extends: [.skopeo, .smoke-rules]
+  stage: test
+  timeout: 10 minutes
+  script:
+    - AUTH="$(mktemp)"
+    - trap 'rm -f "$AUTH"' EXIT          # removed even if a later step fails
+    - ( umask 077; printf '{"auths":{"%s":{"auth":"%s"}}}' "$CI_REGISTRY" "$(printf '%s:%s' "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD" | base64 -w0)" > "$AUTH" )
+    - 'echo "READ check with the job token (lists tags of the M2 experiment repository)"'
+    - skopeo list-tags --authfile "$AUTH" "docker://${CI_REGISTRY_IMAGE}/experiments/recommendation"
+    - 'echo "WRITE-permission probe - ask the registry which actions it would grant for a push scope, nothing is pushed"'
+    - |
+      JWT=$(printf 'user = "%s:%s"\n' "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD" | curl -sS -K - "${CI_SERVER_URL}/jwt/auth?service=container_registry&scope=repository:${CI_PROJECT_PATH}/smoke-probe:push,pull" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+      PAY=$(printf '%s' "$JWT" | cut -d. -f2 | tr '_-' '/+'); while [ $((${#PAY} % 4)) -ne 0 ]; do PAY="$PAY="; done
+      printf '%s' "$PAY" | base64 -d 2>/dev/null | grep -o '"access":\[[^]]*\]' || echo "no push access granted"
+
+smoke:artifact-limit:
+  extends: [.kaniko, .smoke-rules]
+  stage: test
+  timeout: 10 minutes
+  variables:
+    SMOKE_ARTIFACT_MB: "60"
+  script:
+    - mkdir -p out
+    - dd if=/dev/urandom of=out/smoke.bin bs=1M count="$SMOKE_ARTIFACT_MB"
+    - ls -l out/smoke.bin
+  artifacts:
+    paths: [out/]
+    expire_in: 10 minutes
+
+smoke:deploy-runner:                    # MANUAL, read-only (server-side dry-run): proves the deploy runner, pull of ci-tools, RBAC, admission, health,
+                                        # and the Git side of the stale-pipeline guard (checkout readable under the job uid + master-tip lookup via CI_REPOSITORY_URL)
+  extends: [.deploy-runner, .smoke-rules]
+  stage: test
+  timeout: 10 minutes
+  variables:
+    GIT_DEPTH: "1"
+  script:
+    - sh infra/ci-cd/scripts/deploy.sh smoke

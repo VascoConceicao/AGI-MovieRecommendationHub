@@ -1,0 +1,42 @@
+<div class="grid">
+  @for (movie of movies(); track movie.id) {
+    <article>
+      <button #trigger class="movie-card" type="button" [attr.aria-label]="'View details: ' + movie.title" aria-haspopup="dialog" (click)="open(movie, details, trigger)">
+        <div class="poster">@if (movie.poster_url && !failedPosters().has(movie.id)) { <img [src]="movie.poster_url" alt="" loading="lazy" (error)="posterFailed(movie.id)" /> } @else { <img src="/assets/default-poster.svg" alt="Poster unavailable" loading="lazy" /> }</div>
+        <h3>{{ movie.title }}</h3>
+        <p>@if (movie.release_date) { {{ movie.release_date | date:'yyyy' }} } @if (movie.duration_minutes) { · {{ movie.duration_minutes }} min }</p>
+      </button>
+      @if (notes()[movie.id]) { <p class="movie-note">{{ notes()[movie.id] }}</p> }
+    </article>
+  }
+</div>
+<dialog #details (close)="close()" (click)="backdrop($event, details)" aria-labelledby="search-movie-title">
+  <button autofocus class="secondary-button close" type="button" aria-label="Close movie details" (click)="details.close()">✕</button>
+  @if (selected(); as movie) {
+    <div class="detail-layout">
+      <div>
+        <div class="poster">@if (movie.poster_url && !failedPosters().has(movie.id)) { <img [src]="movie.poster_url" [alt]="movie.title + ' poster'" (error)="posterFailed(movie.id)" /> } @else { <img src="/assets/default-poster.svg" alt="Poster unavailable" loading="lazy" /> }</div>
+        <button class="secondary-button watchlist-button" type="button" [disabled]="pending() || !watchlist.loaded() || watchlist.watchedIds().includes(movie.id)" (click)="save(movie, 'list', details)">{{ watchlist.watchedIds().includes(movie.id) ? 'Watched' : watchlist.ids().includes(movie.id) ? 'Remove from my list' : 'Add to my list' }}</button>
+        <button class="secondary-button watchlist-button" type="button" [disabled]="pending() || !watchlist.loaded()" (click)="save(movie, 'watched', details)">{{ watchlist.watchedIds().includes(movie.id) ? 'Mark as not watched' : 'Mark as watched' }}</button>
+        @if (!watchlist.loaded() && !watchlist.error()) { <p role="status">Loading your movie status…</p> }
+        @if (pending()) { <p role="status">Saving…</p> }
+      </div>
+      <div>
+        <h2 id="search-movie-title">{{ movie.title }}</h2>
+        @if (movie.original_title && movie.original_title !== movie.title) { <p class="muted">{{ movie.original_title }}</p> }
+        <p class="muted">{{ movie.genres?.join(' · ') }}</p><p>{{ movie.synopsis }}</p>
+        <dl>
+          @if (movie.release_date) { <dt>Release date</dt><dd>{{ movie.release_date | date:'mediumDate' }}</dd> }
+          @if (movie.duration_minutes) { <dt>Duration</dt><dd>{{ movie.duration_minutes }} min</dd> }
+          @if (movie.directors?.length) { <dt>Directors</dt><dd>{{ movie.directors?.join(', ') }}</dd> }
+          @if (movie.actors?.length) { <dt>Cast</dt><dd>{{ movie.actors?.join(', ') }}</dd> }
+          @if (movie.languages?.length) { <dt>Languages</dt><dd>{{ movie.languages?.join(', ') }}</dd> }
+          @if (movie.countries?.length) { <dt>Countries</dt><dd>{{ movie.countries?.join(', ') }}</dd> }
+          @if (movie.movie_type) { <dt>Type</dt><dd>{{ movie.movie_type }}</dd> }
+        </dl>
+      </div>
+    </div>
+    @if (error()) { <p role="alert">{{ error() }}</p> }
+    @if (watchlist.error()) { <p role="alert">{{ watchlist.error() }} <button class="secondary-button" type="button" (click)="watchlist.load()">Reload my list</button></p> }
+  }
+</dialog>

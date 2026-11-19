@@ -1,0 +1,43 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build output
+build/
+dist/
+coverage/
+
+# Caches and temporary files
+.cache/
+__pycache__/
+*.py[cod]
+tmp/
+temp/
+*.tmp
+*.log
+*.tgz
+
+# Editor settings
+.idea/
+*.swp
+*.swo
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Application development artifacts
+.angular/
+.pytest_cache/
+.venv/
+venv/
+.coverage
+.coverage.*
+coverage.json
+htmlcov/
+app/backend/*/instance/

@@ -1,0 +1,15 @@
+<main class="home-page">
+  <header>
+    <app-tab-navigation [tabs]="tabs" />
+    <div class="account-actions">
+      @if (onProfile()) {
+        <button type="button" class="secondary-button" (click)="logout()" [disabled]="pending()">{{ pending() ? 'Signing out…' : 'Sign out' }}</button>
+      }
+      <a class="profile-link" routerLink="/home/profile" routerLinkActive="active" ariaCurrentWhenActive="page" aria-label="Your profile" title="Your profile">
+        <img [src]="'/assets/avatars/avatar-' + (auth.user()?.avatar_id ?? 1) + '.svg'" alt="" width="48" height="48" />
+      </a>
+    </div>
+  </header>
+  <router-outlet />
+  @if (onProfile() && error()) { <p class="account-error" role="alert">{{ error() }}</p> }
+</main>

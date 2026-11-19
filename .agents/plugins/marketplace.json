@@ -1,0 +1,32 @@
+{
+  "name": "forge-31735840701578f5",
+  "interface": {
+    "displayName": "Forge project"
+  },
+  "plugins": [
+    {
+      "name": "forge",
+      "source": {
+        "source": "local",
+        "path": "./agents/plugins/forge"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "project",
+      "source": {
+        "source": "local",
+        "path": "./agents/plugins/project"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

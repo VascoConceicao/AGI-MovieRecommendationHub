@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Task"
+  short_description: "Create and organize tracked task work"
+  default_prompt: "Use $create-task to create or organize a hierarchical tracked task."

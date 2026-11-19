@@ -1,0 +1,11 @@
+name: Development
+color: "#346AB2"
+variables:
+  - secret: true
+    name: resetToken
+  - secret: true
+    name: movieResetToken
+  - secret: true
+    name: recommendationResetToken
+  - secret: true
+    name: recommendationApiToken

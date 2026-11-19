@@ -1,0 +1,20 @@
+info:
+  name: All
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://127.0.0.1:4205/api/movie/admin/reset-movie-db
+  body:
+    type: json
+    data: '{"table": "all"}'
+  auth:
+    type: bearer
+    token: "{{movieResetToken}}"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

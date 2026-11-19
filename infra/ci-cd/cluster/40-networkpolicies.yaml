@@ -1,0 +1,40 @@
+# OPTIONAL hardening for the job pods (Calico enforces NetworkPolicy here). Applies only to pods labelled ci-role=...
+# so the runner manager pods are not affected. They affect nothing in g15-app / g15-ci.
+# Build jobs: internet only (registries, npm, PyPI, GitLab). They cannot reach pods, services, nodes or the GCE metadata server.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: build-jobs-egress, namespace: g15-build}
+spec:
+  podSelector: {matchLabels: {ci-role: build}}
+  policyTypes: [Ingress, Egress]
+  egress:
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+          podSelector: {matchLabels: {k8s-app: kube-dns}}
+      ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.244.0.0/16, 10.96.0.0/12, 10.42.42.0/24, 169.254.0.0/16]
+---
+# Deploy jobs: DNS, the Kubernetes API, GitLab, and read-only health probes of the app Services. Not the databases, not Qwen.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: deploy-jobs-egress, namespace: g15-cd}
+spec:
+  podSelector: {matchLabels: {ci-role: deploy}}
+  policyTypes: [Ingress, Egress]
+  egress:
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+          podSelector: {matchLabels: {k8s-app: kube-dns}}
+      ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]
+    - to: [{ipBlock: {cidr: 10.42.42.10/32}}]          # kube-apiserver after service DNAT
+      ports: [{protocol: TCP, port: 6443}]
+    - to: [{ipBlock: {cidr: 10.96.0.1/32}}]            # kubernetes.default Service IP
+      ports: [{protocol: TCP, port: 443}]
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: g15-app}}
+      ports: [{protocol: TCP, port: 80}, {protocol: TCP, port: 4206}, {protocol: TCP, port: 4207}, {protocol: TCP, port: 4208}]
+    - to: [{ipBlock: {cidr: 0.0.0.0/0, except: [10.244.0.0/16, 10.96.0.0/12, 10.42.42.0/24, 169.254.0.0/16]}}]
+      ports: [{protocol: TCP, port: 443}]               # GitLab (clone / artifacts / registry) over HTTPS only

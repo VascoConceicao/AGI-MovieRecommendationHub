@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "managedFiles": {
+    ".agents/plugins/marketplace.json": {
+      "type": "file",
+      "sha256": "b4123f7ab1cfe3e943bf11d50176a5d01e84644e135ea07c3471cb81dad59a5f",
+      "executable": false
+    },
+    ".claude-plugin/marketplace.json": {
+      "type": "file",
+      "sha256": "0a028303a1120d1bc13d97016c3ae77e6a62f239b7c2c20a2a6ae1a7283d00f3",
+      "executable": false
+    },
+    ".github/workflows/delete-merged-branches.yml": {
+      "type": "file",
+      "sha256": "8d648c47ab6400380879ab86390286541209e62aab655200c6d1b7064c6791ae",
+      "executable": false
+    },
+    ".github/workflows/validate-methodology.yml": {
+      "type": "file",
+      "sha256": "c6880416fbc0d75c4ce0eed242b47fcfb6877cb744f56ed42fc018fabd367ab4",
+      "executable": false
+    },
+    "agents/plugins/forge/.claude-plugin/plugin.json": {
+      "type": "file",
+      "sha256": "e5c582edd36a1f2ebe964c84d8c8fccc6d8b23c1c3306ce7949a8e08e837eac2",
+      "executable": false
+    },
+    "agents/plugins/forge/.codex-plugin/plugin.json": {
+      "type": "file",
+      "sha256": "1254ad8da131d71d6482648ce0f7c661691ccb44b403eda81adef70f116091a7",
+      "executable": false
+    },
+    "agents/plugins/forge/README.md": {
+      "type": "file",
+      "sha256": "3abe8efd5530cffa6053f9434b80f2a2c59c32898401f8f7f21fbb0306c60769",
+      "executable": false
+    },
+    "agents/plugins/forge/skills/create-project-skill/agents/openai.yaml": {
+      "type": "file",
+      "sha256": "5847f5b7b9cc3f672b8208326976ca47421112053e9955eb9708ca838da3efd5",
+      "executable": false
+    },
+    "agents/plugins/forge/skills/create-project-skill/scripts/package-skill.sh": {
+      "type": "file",
+      "sha256": "9e78292dd39fcbd1af56d12923e3c13bab4d65ba5002c81cf6788e5ae75a43ac",
+      "executable": true
+    },
+    "agents/plugins/forge/skills/create-project-skill/scripts/plugin-skill.py": {
+      "type": "file",
+      "sha256": "4dbe013b36469d5024f57e4cfb6ed5f34f122f06e51aed8169d8d9dd698eb575",
+      "executable": false
+    },
+    "agents/plugins/forge/skills/create-project-skill/SKILL.md": {
+      "type": "file",
+      "sha256": "3fa9374b1eff24026f4d3be26116195bcc2e9a31bcb25a210785e00eb8580fbf",
+      "executable": false
+    },
+    "agents/plugins/forge/skills/create-task/agents/openai.yaml": {
+      "type": "file",
+      "sha256": "5a9e3a41f08377b4b8b5e859f0782eccf8d95f9a95b99655f7a994d4eda71b0c",
+      "executable": false
+    },
+    "agents/plugins/forge/skills/create-task/scripts/__pycache__/apply_move.cpython-314.pyc": {
+      "type": "file",
+      "sha256": "f519cdf8cd597ae2581a6d039fce4d96a409761b47ca6e679841fc2747a89566",
+      "executable": false
+    },
+    "agents/plugins/forge/skills/create-task/scripts/__pycache__/complete_task.cpython-314.pyc": {
+      "type": "file",
+      "sha256": "818bec6b8f3220d810a8398256057591332b5a6120b7db2c7da31ff628751595",
+      "executable": false
+    },
+    "agents/plugins/forge/skills/create-task/scripts/__pycache__/task_engine.cpython-314.pyc": {
+      "type": "file",
+      "sha256": "aff1871efd243d412368a3b77ed0325d6218c889153f21590476c6b5b3129ff5",
+      "executable": false
+    },
+    "agents/plugins/forge/skills/create-task/scripts/apply_move.py": {
+      "type": "file",
+      "sha256": "6009ac727a926f4ef15ca5cbcb2283861924f153ff5fe33ff0379c507c518b32",
+      "executable": false
+    },
+    "agents/plugins/forge/skills/create-task/scripts/complete_task.py": {
+      "type": "file",
+      "sha256": "1fa0626119caae140ade331d47b1b22a424c3445f26145697c7613c6ab23b57e",
+      "executable": false
+    },
+    "agents/plugins/forge/skills/create-task/scripts/task_engine.py": {
+      "type": "file",
+      "sha256": "db110e9cdfbe7d872caee37808c8a39efd4b40989facbc1f5e67fb65c0cd31d3",
+      "executable": true
+    },
+    "agents/plugins/forge/skills/create-task/scripts/task-helper.sh": {
+      "type": "file",
+      "sha256": "dcac427c965ac888fe9c52dd34b80b79161fc2fa37c43bbfe609fe1aa2839074",
+      "executable": true
+    },
+    "agents/plugins/forge/skills/create-task/scripts/tests/test_task_engine.py": {
+      "type": "file",
+      "sha256": "24aaf1564d8cf0edf830a6db9dbe9a3121c376044486db015968e132ceccb1d4",
+      "executable": true
+    },
+    "agents/plugins/forge/skills/create-task/SKILL.md": {
+      "type": "file",
+      "sha256": "f27d691b3f8e856ec40c898e0f36b7906eff07332bba6de914226ece71781fb9",
+      "executable": false
+    },
+    "agents/plugins/forge/skills/implement-phase/agents/openai.yaml": {
+      "type": "file",
+      "sha256": "183c7f441a2e4e7f6f0b9f2f2c71b5012449f3e0f86c1fabdaef33a2285b8f54",
+      "executable": false
+    },
+    "agents/plugins/forge/skills/implement-phase/scripts/implement-phase.sh": {
+      "type": "file",
+      "sha256": "902d701cf342811d82805971ed0caaac6c1c3aef5c0f556817a9bdb4b79cddcf",
+      "executable": true
+    },
+    "agents/plugins/forge/skills/implement-phase/scripts/tests/test_implement_phase.py": {
+      "type": "file",
+      "sha256": "0e2514fecc80cf0086e2bd5227a1d1637f678021a66dbd59ef7fb49259b8a8f8",
+      "executable": false
+    },
+    "agents/plugins/forge/skills/implement-phase/SKILL.md": {
+      "type": "file",
+      "sha256": "ec6143c6a525150cb0cb52a8c68bd5010ae2afad4f0d14bcfbaff29ec0420b2b",
+      "executable": false
+    },
+    "agents/plugins/forge/skills/initialize-project/agents/openai.yaml": {
+      "type": "file",
+      "sha256": "5c2451f794a1737ae85b94af44089dda25f7663cbc2d0fff1d5d2a34f7d8f458",
+      "executable": false
+    },
+    "agents/plugins/forge/skills/initialize-project/scripts/project-docs.sh": {
+      "type": "file",
+      "sha256": "f52750f90e51dc89fcd4e15d17336217788c309bcf48464ea4cd1509d4f90bc3",
+      "executable": true
+    },
+    "agents/plugins/forge/skills/initialize-project/SKILL.md": {
+      "type": "file",
+      "sha256": "13b6c62b5c212a55ba5698ae80e849dfbc2e320bb3218f843303d17865641f8c",
+      "executable": false
+    },
+    "agents/plugins/forge/skills/push/agents/openai.yaml": {
+      "type": "file",
+      "sha256": "cd5dcbe80b2c46680e0197c6cd07e8d7e5cdc343cba88d1b6ce1c270b879b5f5",
+      "executable": false
+    },
+    "agents/plugins/forge/skills/push/scripts/push-check.sh": {
+      "type": "file",
+      "sha256": "ce5bad10435b4d1648fabd383b36a9e05a9ad0caec0260099d9f4e8cd149add7",
+      "executable": true
+    },
+    "agents/plugins/forge/skills/push/SKILL.md": {
+      "type": "file",
+      "sha256": "d0ec3596c99463b7ee1d6eb719dbb83edef816791d205e73d4dddb19b0f9e6ec",
+      "executable": false
+    },
+    "agents/plugins/forge/skills/shared-dev-methodology/agents/openai.yaml": {
+      "type": "file",
+      "sha256": "475d1018426fe96ae19b9a10d55c8cf8d63b360c10fa4b4e3313a1538e0175a3",
+      "executable": false
+    },
+    "agents/plugins/forge/skills/shared-dev-methodology/SKILL.md": {
+      "type": "file",
+      "sha256": "cc74ffab0718e4402eb11cf8700acf0b11e2bbf0d52c933de1e609abd22e3a24",
+      "executable": false
+    },
+    "agents/plugins/forge/skills/skip-methodology/agents/openai.yaml": {
+      "type": "file",
+      "sha256": "80fe13727be3ae495e471758dbf78c02cbac864d0edbe6f1b6270af8b6d2a1d9",
+      "executable": false
+    },
+    "agents/plugins/forge/skills/skip-methodology/SKILL.md": {
+      "type": "file",
+      "sha256": "01c0ad20c5433f91c48bbe69dca9484abc2b8b06a6e3c3c1ab288c36b1b6312b",
+      "executable": false
+    },
+    "scripts/validation/validate_methodology.py": {
+      "type": "file",
+      "sha256": "3bd889946316263c2be66b0db1ca26c55b99c0640a1d3dd37291c1f66b09475d",
+      "executable": false
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "_source": "The September rehearsal, run on GCE with the real k6 binary against health endpoints and the frontend entrypoint only. NOTE: the k6 summary output was printed to a terminal and was NOT archived, so these are the values as reported in the report's Table 1, transcribed here. They are not a machine-readable k6 export and no per-stage breakdown survives.",
+  "_do_not_mix": "This run used a different workload from the October study (health + / only, no catalogue) and a different cluster, so its numbers are not comparable stage-for-stage with load-2026-10-16.json.",
+  "date": "2026-09-25",
+  "environment": "GCE",
+  "tool": "k6",
+  "workload": ["health", "/"],
+  "total_requests": 25183,
+  "ok_rate_pct": 56.0,
+  "p50_ms": 28.0,
+  "p95_ms": 5430.0,
+  "client_timeout_rate_pct": 44.0,
+  "pod_restarts": 0,
+  "flask_5xx": 0,
+  "stages": null
+}

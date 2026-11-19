@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Project Skill"
+  short_description: "Create reusable skills in the Forge plugin"
+  default_prompt: "Use $create-project-skill to create a project-owned skill in the forge plugin for Codex and Claude Code."

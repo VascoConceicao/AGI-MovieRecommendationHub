@@ -1,0 +1,62 @@
+{
+ "catalogue_offset": 2500,
+ "created_at": "2026-10-19T17:42:25.500+00:00",
+ "profile_visibility": "private",
+ "watched_movies": [
+  {
+   "duration_minutes": 128,
+   "genres": [
+    "Action",
+    "Drama",
+    "Romance"
+   ],
+   "http": 200,
+   "id": "5f72b736-9e91-4cc8-8de5-c7933d0e5c76",
+   "title": "My Dearest Assassin"
+  },
+  {
+   "duration_minutes": 173,
+   "genres": [
+    "Comedy",
+    "Music",
+    "Drama"
+   ],
+   "http": 200,
+   "id": "e44aaf5e-9474-4892-8458-401f571e86a3",
+   "title": "My Fair Lady"
+  },
+  {
+   "duration_minutes": 116,
+   "genres": [
+    "Drama",
+    "Romance",
+    "Thriller"
+   ],
+   "http": 200,
+   "id": "8150bad9-ecaa-4578-9c06-17b466d057ba",
+   "title": "My Fault"
+  },
+  {
+   "duration_minutes": 119,
+   "genres": [
+    "Drama",
+    "Romance"
+   ],
+   "http": 200,
+   "id": "fa1efed0-48eb-4b7d-a961-03554128412e",
+   "title": "My Fault: London"
+  },
+  {
+   "duration_minutes": 110,
+   "genres": [
+    "Animation",
+    "Action",
+    "Adventure",
+    "Science Fiction"
+   ],
+   "http": 200,
+   "id": "667c1f8a-0f96-42ba-b7c6-2cb227fdc2e1",
+   "title": "My Hero Academia: You're Next"
+  }
+ ]
+}

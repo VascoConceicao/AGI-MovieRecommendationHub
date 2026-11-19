@@ -1,0 +1,220 @@
+{
+ "captured_at": "2026-10-19T17:41:28.347+00:00",
+ "cd_state": "status=idle lastVerifiedCommit=2b79df8a229fce9f69dcf1dc9f4786c7e89f10cc",
+ "cronjob": {
+  "env": [
+   {
+    "AGENT_CONTEXT_TOKEN": null
+   },
+   {
+    "AGENT_REFRESH_HOURS": "24"
+   },
+   {
+    "AGENT_RETRY_COOLDOWN_MINUTES": "60"
+   },
+   {
+    "AGENT_MAX_QUEUED": "4"
+   }
+  ],
+  "image": "registry.rnl.tecnico.ulisboa.pt/psia/groups26/g15/recommendation-service@sha256:fb37c74d505e1cdf2e6ef9e6e80cf366f22c6dfe53988203318971af0220570d",
+  "schedule": "*/3 * * * *",
+  "suspend": false
+ },
+ "deployments": [
+  {
+   "args": null,
+   "generation": 6,
+   "image": "registry.rnl.tecnico.ulisboa.pt/psia/groups26/g15/frontend@sha256:d7e1c709e307b2af4c62f8b7dae83d44c43d93fc9cc7f9d762c5a9d971f41687",
+   "name": "frontend",
+   "replicas": 1,
+   "resources": {
+    "limits": {
+     "cpu": "250m",
+     "memory": "256Mi"
+    },
+    "requests": {
+     "cpu": "50m",
+     "memory": "64Mi"
+    }
+   }
+  },
+  {
+   "args": [
+    "--host",
+    "0.0.0.0",
+    "--port",
+    "4210",
+    "-hf",
+    "Qwen/Qwen2.5-0.5B-Instruct-GGUF:Q4_K_M",
+    "--alias",
+    "qwen2.5-0.5b-instruct",
+    "--ctx-size",
+    "8192",
+    "--parallel",
+    "1",
+    "--threads",
+    "2",
+    "--no-webui"
+   ],
+   "generation": 1,
+   "image": "ghcr.io/ggml-org/llama.cpp@sha256:6d607629e3dd5e85f45c43d1494648126cb3f93f2122c9cd53f43242c94cde14",
+   "name": "inference",
+   "replicas": 1,
+   "resources": {
+    "limits": {
+     "cpu": "1500m",
+     "memory": "1536Mi"
+    },
+    "requests": {
+     "cpu": "500m",
+     "memory": "1Gi"
+    }
+   }
+  },
+  {
+   "args": null,
+   "generation": 3,
+   "image": "registry.rnl.tecnico.ulisboa.pt/psia/groups26/g15/movie-service@sha256:609dc022f34653171c52ccae6986466cca4aa8a47dd0316e4943023a50232c0a",
+   "name": "movie-service",
+   "replicas": 1,
+   "resources": {
+    "limits": {
+     "cpu": "500m",
+     "memory": "512Mi"
+    },
+    "requests": {
+     "cpu": "100m",
+     "memory": "128Mi"
+    }
+   }
+  },
+  {
+   "args": null,
+   "generation": 2,
+   "image": "registry.rnl.tecnico.ulisboa.pt/psia/groups26/g15/proxy@sha256:e3dce0dcca4b295cd311629a911554045faf7a399af5adabd5bbe2fbf1e67a50",
+   "name": "proxy",
+   "replicas": 1,
+   "resources": {
+    "limits": {
+     "cpu": "250m",
+     "memory": "256Mi"
+    },
+    "requests": {
+     "cpu": "50m",
+     "memory": "64Mi"
+    }
+   }
+  },
+  {
+   "args": null,
+   "generation": 5,
+   "image": "registry.rnl.tecnico.ulisboa.pt/psia/groups26/g15/recommendation-service@sha256:fb37c74d505e1cdf2e6ef9e6e80cf366f22c6dfe53988203318971af0220570d",
+   "name": "recommendation-service",
+   "replicas": 1,
+   "resources": {
+    "limits": {
+     "cpu": "500m",
+     "memory": "512Mi"
+    },
+    "requests": {
+     "cpu": "100m",
+     "memory": "128Mi"
+    }
+   }
+  },
+  {
+   "args": null,
+   "generation": 3,
+   "image": "registry.rnl.tecnico.ulisboa.pt/psia/groups26/g15/user-service@sha256:9e8d4755cf723942bf7f240d0e5fa906a15a0aa03af9a4a1b01a2e656b310ae4",
+   "name": "user-service",
+   "replicas": 1,
+   "resources": {
+    "limits": {
+     "cpu": "500m",
+     "memory": "512Mi"
+    },
+    "requests": {
+     "cpu": "100m",
+     "memory": "128Mi"
+    }
+   }
+  }
+ ],
+ "inference_cgroup_limit": "150000 100000",
+ "llama_temperature_sent_by_app": 0.2,
+ "model": {
+  "id": "qwen2.5-0.5b-instruct",
+  "meta": {
+   "ftype": "Q4_K - Medium",
+   "n_ctx": 8192,
+   "n_ctx_train": 32768,
+   "n_embd": 896,
+   "n_params": 630167424,
+   "n_vocab": 151936,
+   "size": 485452288,
+   "vocab_type": 2
+  }
+ },
+ "pods": [
+  {
+   "imageID": "registry.rnl.tecnico.ulisboa.pt/psia/groups26/g15/frontend@sha256:d7e1c709e307b2af4c62f8b7dae83d44c43d93fc9cc7f9d762c5a9d971f41687",
+   "node": "g15-worker2",
+   "pod": "frontend-59f4798c6f-227h4",
+   "restarts": 0,
+   "started": "2026-10-17T16:56:53Z"
+  },
+  {
+   "imageID": "ghcr.io/ggml-org/llama.cpp@sha256:6d607629e3dd5e85f45c43d1494648126cb3f93f2122c9cd53f43242c94cde14",
+   "node": "g15-worker1",
+   "pod": "inference-559bf5cc5f-g96n5",
+   "restarts": 0,
+   "started": "2026-10-15T20:17:04Z"
+  },
+  {
+   "imageID": "registry.rnl.tecnico.ulisboa.pt/psia/groups26/g15/movie-service@sha256:609dc022f34653171c52ccae6986466cca4aa8a47dd0316e4943023a50232c0a",
+   "node": "g15-worker1",
+   "pod": "movie-service-59b698c6dc-8k2zk",
+   "restarts": 0,
+   "started": "2026-10-17T16:55:42Z"
+  },
+  {
+   "imageID": "registry.rnl.tecnico.ulisboa.pt/psia/groups26/g15/proxy@sha256:e3dce0dcca4b295cd311629a911554045faf7a399af5adabd5bbe2fbf1e67a50",
+   "node": "g15-worker2",
+   "pod": "proxy-7fcccff6ff-fchtv",
+   "restarts": 0,
+   "started": "2026-10-17T16:56:39Z"
+  },
+  {
+   "imageID": "registry.rnl.tecnico.ulisboa.pt/psia/groups26/g15/recommendation-service@sha256:fb37c74d505e1cdf2e6ef9e6e80cf366f22c6dfe53988203318971af0220570d",
+   "node": "g15-worker2",
+   "pod": "recommendation-service-5dc9df5bf5-wlwg7",
+   "restarts": 0,
+   "started": "2026-10-17T16:56:18Z"
+  },
+  {
+   "imageID": "registry.rnl.tecnico.ulisboa.pt/psia/groups26/g15/user-service@sha256:9e8d4755cf723942bf7f240d0e5fa906a15a0aa03af9a4a1b01a2e656b310ae4",
+   "node": "g15-worker2",
+   "pod": "user-service-567f45cc75-kjk8j",
+   "restarts": 0,
+   "started": "2026-10-17T16:56:00Z"
+  }
+ ],
+ "recommendation_env": [
+  {
+   "INFERENCE_SERVICE_URL": "http://inference:4210"
+  },
+  {
+   "INFERENCE_TIMEOUT_SECONDS": "300"
+  },
+  {
+   "INFERENCE_RETRY_TIMEOUT_SECONDS": "150"
+  },
+  {
+   "INFERENCE_SYNOPSIS_CHARS": "0"
+  },
+  {
+   "AUTO_INFERENCE_ENABLED": "false"
+  }
+ ],
+ "worker1_cpu": "CPU(s): 2\nModel name: Intel(R) Xeon(R) CPU @ 2.20GHz\nThread(s) per core: 2\nCore(s) per socket: 1\n"
+}

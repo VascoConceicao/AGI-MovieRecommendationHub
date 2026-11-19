@@ -1,0 +1,5 @@
+[plugins."forge@forge-31735840701578f5"]
+enabled = true
+
+[plugins."project@forge-31735840701578f5"]
+enabled = true

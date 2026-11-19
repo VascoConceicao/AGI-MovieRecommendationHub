@@ -1,0 +1,9 @@
+.terraform/
+terraform/app/.data-gcp/
+*.tfstate
+*.tfstate.*
+kubeconfig.out
+*.retry
+.env
+ansible/inventory.ini
+ansible/inventory.gcp.ini

@@ -1,0 +1,36 @@
+---
+# Image distribution without a registry: nodes cannot reach upstream
+# registries, so operator-built or side-loaded images travel as tarballs.
+# This play copies archives, imports them into the k8s.io containerd
+# namespace, and deletes the archives afterward (several hundred MB each;
+# leaving them behind caused real disk pressure).
+#
+# Example (from infra/ansible/):
+#   ansible-playbook -i inventory.ini distribute-images.yaml \
+#     -e '{"image_archives": ["/tmp/g15-images.tar"]}'
+- name: Distribute container images to Kubernetes nodes
+  hosts: kubernetes
+  become: true
+
+  vars:
+    image_archives: []
+    remote_dir: /tmp
+
+  tasks:
+    - name: Copy image archives to nodes
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "{{ remote_dir }}/{{ item | basename }}"
+        mode: '0600'
+      loop: "{{ image_archives }}"
+
+    - name: Import images into containerd
+      ansible.builtin.command:
+        cmd: ctr -n k8s.io images import {{ remote_dir }}/{{ item | basename }}
+      loop: "{{ image_archives }}"
+
+    - name: Remove archives after import
+      ansible.builtin.file:
+        path: "{{ remote_dir }}/{{ item | basename }}"
+        state: absent
+      loop: "{{ image_archives }}"

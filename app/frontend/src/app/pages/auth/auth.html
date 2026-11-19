@@ -1,0 +1,46 @@
+<main class="auth-layout">
+  <section class="story" aria-labelledby="story-title">
+    <div class="story-copy">
+      <h1 id="story-title">Your next <br>great movie <br><em>starts here.</em></h1>
+    </div>
+  </section>
+  <section class="form-panel" aria-labelledby="form-title">
+    <div class="form-wrap">
+      <h2 id="form-title">{{ register() ? 'Create your account' : 'Welcome back.' }}</h2>
+      <nav class="auth-tabs" aria-label="Account access">
+        <a routerLink="/login" [class.active]="!register()" [attr.aria-current]="!register() ? 'page' : null">Sign in</a>
+        <a routerLink="/register" [class.active]="register()" [attr.aria-current]="register() ? 'page' : null">Create account</a>
+      </nav>
+      @if (error()) { <p class="form-error" role="alert">{{ error() }}</p> }
+      <form #form (submit)="submit($event, form)">
+        <fieldset [disabled]="pending()">
+          @if (register()) {
+            <label for="username">Username</label>
+            <input id="username" name="username" type="text" autocomplete="username" placeholder="Choose a unique username" required maxlength="80" pattern="[A-Za-z0-9_.\-]+" spellcheck="false" autocapitalize="none">
+            <label for="display-name">Display name</label>
+            <input id="display-name" name="display_name" type="text" autocomplete="nickname" placeholder="What should we call you?" required maxlength="80">
+          }
+          <label for="email">Email address</label>
+          <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required maxlength="254" spellcheck="false" autocapitalize="none">
+          <label for="password">Password</label>
+          <div class="password-field">
+            <input id="password" name="password" [type]="showPassword() ? 'text' : 'password'" [attr.autocomplete]="register() ? 'new-password' : 'current-password'" placeholder="Enter your password" required>
+            <button class="show-password" type="button" (click)="showPassword.set(!showPassword())" [attr.aria-pressed]="showPassword()" [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">{{ showPassword() ? 'Hide' : 'Show' }}</button>
+          </div>
+          @if (register()) {
+            <label for="confirmation">Confirm password</label>
+            <input id="confirmation" name="password_confirmation" [type]="showPassword() ? 'text' : 'password'" autocomplete="new-password" placeholder="Enter your password again" required>
+          }
+          <button class="submit-button" type="submit" [attr.aria-busy]="pending()">
+            {{ pending() ? (register() ? 'Creating your account…' : 'Signing you in…') : (register() ? 'Create account' : 'Sign in') }}
+            @if (!pending()) { <span aria-hidden="true">↗</span> }
+          </button>
+        </fieldset>
+      </form>
+      <p class="switch-copy">{{ register() ? 'Already part of the story?' : 'New around here?' }}
+        <a [routerLink]="register() ? '/login' : '/register'">{{ register() ? 'Sign in' : 'Create an account' }}</a>
+      </p>
+      <div class="form-footer"><a class="credits-link" routerLink="/credits">Credits</a></div>
+    </div>
+  </section>
+</main>

@@ -1,0 +1,5 @@
+.movie-card { border: 1px solid transparent; }
+.movie-card:hover { border-color: var(--dark-cyan); }
+.movie-card:focus-visible { outline: 2px solid var(--golden-orange); outline-offset: 4px; }
+
+.movie-note { color: var(--pearl-aqua); font-size: .85rem; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }

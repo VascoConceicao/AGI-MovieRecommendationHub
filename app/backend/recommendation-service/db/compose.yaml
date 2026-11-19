@@ -1,0 +1,24 @@
+# Shared project name keeps standalone and root launches on the same resources.
+name: g15-databases
+
+services:
+  recommendation-db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: recommendation
+      POSTGRES_USER: recommendation
+      POSTGRES_PASSWORD: ${RECOMMENDATION_DB_PASSWORD:?Set RECOMMENDATION_DB_PASSWORD in this service's .env}
+    ports:
+      - "127.0.0.1:${RECOMMENDATION_DB_PORT:-5434}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recommendation -d recommendation"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    volumes:
+      - recommendation-data:/var/lib/postgresql
+
+volumes:
+  recommendation-data:

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implement Phase"
+  short_description: "Implement phases here or with a chosen subagent"
+  default_prompt: "Use $implement-phase to implement selected phases, asking whether to spawn with the recommended model and effort or continue in this conversation."

@@ -1,0 +1,8 @@
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^(development|master)$/'
+    - when: never
+
+include:
+  - local: /infra/ci-cd/pipeline.yml
+  - local: /infra/ci-cd/delivery.yml

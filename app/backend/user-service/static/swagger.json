@@ -1,0 +1,3352 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "User Service API",
+    "version": "0.1.0",
+    "description": "Accounts, profiles and seven-day sessions. Use the proxy UI for cookie-based requests: the session cookie is scoped to /api/user. Reset endpoint is opt-in and destructive."
+  },
+  "servers": [
+    {
+      "url": "/api/user",
+      "description": "Same-origin Nginx or Angular development proxy"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Administration",
+      "description": "Opt-in account-data resets."
+    },
+    {
+      "name": "Authentication",
+      "description": "Email/password access and private account details."
+    },
+    {
+      "name": "Internal API"
+    },
+    {
+      "name": "Monitoring"
+    },
+    {
+      "name": "Profile"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Monitoring"
+        ],
+        "operationId": "userHealth",
+        "summary": "Check database readiness",
+        "responses": {
+          "200": {
+            "description": "Database is reachable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                },
+                "example": {
+                  "service": "user-service",
+                  "status": "ok",
+                  "database": "up"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Database unavailable or unconfigured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                },
+                "example": {
+                  "service": "user-service",
+                  "status": "unavailable",
+                  "database": "down"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "tags": [
+          "Monitoring"
+        ],
+        "operationId": "userMetrics",
+        "summary": "Read Prometheus metrics",
+        "responses": {
+          "200": {
+            "description": "Prometheus text exposition.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "registerUser",
+        "summary": "Create account and sign in",
+        "description": "Creates account, profile, and session atomically. Password is stored as an Argon2id hash. Sets the HttpOnly g15_session cookie. Previous browser session is revoked. Confirmation must match.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "X-G15-Request",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ],
+              "default": "1"
+            },
+            "description": "Required on auth POSTs. JSON only; no CORS access."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              },
+              "example": {
+                "email": "reader@example.com",
+                "password": "example-password",
+                "display_name": "Reader",
+                "password_confirmation": "example-password",
+                "username": "reader"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account created; session cookie set.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid account fields or mismatched confirmation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "409": {
+            "description": "Email or username is already taken.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "403": {
+            "description": "Missing request header, non-JSON content, or cross-site request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "413": {
+            "description": "Request exceeds 16 KiB. Flask returns an HTML error.",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account service/database unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "loginUser",
+        "summary": "Sign in",
+        "description": "Case-insensitive email lookup. Sets a fresh seven-day session cookie and revokes the previous browser session. Wrong email/password share a generic error.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "X-G15-Request",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ],
+              "default": "1"
+            },
+            "description": "Required on auth POSTs. JSON only; no CORS access."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              },
+              "example": {
+                "email": "reader@example.com",
+                "password": "example-password"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in; session cookie set.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid email or missing password.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "401": {
+            "description": "Email or password is incorrect.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "403": {
+            "description": "Missing request header, non-JSON content, or cross-site request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "413": {
+            "description": "Request exceeds 16 KiB. Flask returns an HTML error.",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account service/database unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "currentUser",
+        "summary": "Read the signed-in account",
+        "description": "Private account response; not a public profile endpoint. Validates session expiry on every request.",
+        "security": [
+          {
+            "SessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current account details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "401": {
+            "description": "Session missing, invalid, or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Account service/database unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "logoutUser",
+        "summary": "Sign out",
+        "description": "Deletes current session and clears its cookie. Succeeds when already signed out.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "X-G15-Request",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ],
+              "default": "1"
+            },
+            "description": "Required on auth POSTs. JSON only; no CORS access."
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session revoked; cookie cleared.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                },
+                "example": {
+                  "message": "Signed out."
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "403": {
+            "description": "Missing request header, non-JSON content, or cross-site request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "413": {
+            "description": "Request exceeds 16 KiB. Flask returns an HTML error.",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account service/database unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/reset-user-db": {
+      "post": {
+        "tags": [
+          "Administration"
+        ],
+        "operationId": "resetUserDatabase",
+        "summary": "Clear selected account-table data",
+        "description": "Disabled unless AUTH_RESET_ENABLED=true and AUTH_RESET_TOKEN is set. Schema stays. all/users also remove dependent profiles, sessions, and watched history. user_sessions signs everyone out. Clearing user_profiles leaves accounts but current login needs their profiles. Transactional reset; never call just to view docs.",
+        "security": [
+          {
+            "ResetToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetRequest"
+              },
+              "example": {
+                "table": "user_sessions"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cleared tables and deleted row counts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetResponse"
+                },
+                "example": {
+                  "cleared_tables": [
+                    "user_sessions"
+                  ],
+                  "deleted_rows": {
+                    "user_sessions": 3
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "400": {
+            "description": "JSON body must contain exactly one valid table field.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or incorrect reset bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "403": {
+            "description": "Cross-site request rejected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "404": {
+            "description": "Reset disabled or no reset token configured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "413": {
+            "description": "Request exceeds 16 KiB.",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database unavailable; no reset committed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profile": {
+      "get": {
+        "summary": "Get current private profile with avatar_id.",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "profile"
+                  ],
+                  "properties": {
+                    "profile": {
+                      "$ref": "#/components/schemas/Profile"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable; retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ProfileSession": []
+          }
+        ],
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/profile/avatar": {
+      "post": {
+        "summary": "Persist one of ten bundled default avatars.",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "profile"
+                  ],
+                  "properties": {
+                    "profile": {
+                      "$ref": "#/components/schemas/Profile"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable; retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large (Flask HTML response).",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Same-origin JSON and X-G15-Request: 1 required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ProfileSession": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "avatar_id"
+                ],
+                "properties": {
+                  "avatar_id": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-G15-Request",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            }
+          }
+        ],
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/profile/watched": {
+      "get": {
+        "summary": "Read private watched history; newest recorded first, 25 per page.",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items",
+                    "total",
+                    "matched_total",
+                    "offset",
+                    "limit",
+                    "watch_minutes"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "movie_id",
+                          "watched_at",
+                          "recorded_at"
+                        ],
+                        "properties": {
+                          "movie_id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "watched_at": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "recorded_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "matched_total": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "offset": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "enum": [
+                        25
+                      ]
+                    },
+                    "watch_minutes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "items": [],
+                  "total": 0,
+                  "matched_total": 0,
+                  "offset": 0,
+                  "limit": 25,
+                  "watch_minutes": 0
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable; retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ProfileSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000,
+              "default": 0
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "description": "Case-insensitive title/original-title search across all watched movies. total/watch_minutes remain all-history totals; matched_total counts search results."
+          }
+        ],
+        "description": "Includes watch_minutes for all watched movies, not just this page. User Service reads its own watched IDs and obtains durations through Movie Service API. Zero when no watched movies; null if durations are missing or Movie Service is unavailable.",
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/internal/clear-watched": {
+      "post": {
+        "summary": "Internal idempotent full-catalog watched cleanup.",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "operation_id",
+                    "deleted_rows"
+                  ],
+                  "properties": {
+                    "operation_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "deleted_rows": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable; retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large (Flask HTML response).",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Cross-site requests rejected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Cleanup token not configured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "WatchedCleanupToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "operation_id",
+                  "movie_ids"
+                ],
+                "properties": {
+                  "operation_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "movie_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Idempotent catalog reset receipt; clears watched/watchlist links and retires movie IDs. deleted_rows counts watched entries only. Maximum body 8 MiB.",
+        "tags": [
+          "Internal API"
+        ]
+      }
+    },
+    "/profile/events": {
+      "get": {
+        "summary": "Live watched-history updates for the current user.",
+        "description": "SSE stream backed by committed PostgreSQL notifications. ready requests initial/reconnect synchronization; watched-changed requests a history reload; signed-out ends an expired/revoked session. Keep-alive comments do not trigger reloads.",
+        "security": [
+          {
+            "ProfileSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE events: ready, watched-changed, signed-out; keep-alive comments. Watchlist changes share watched-changed.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "retry: 3000\nevent: ready\ndata: {}\n\n"
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              },
+              "X-Accel-Buffering": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no"
+              }
+            }
+          },
+          "401": {
+            "description": "Session required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Database unavailable or stream capacity reached; reconnect later.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          }
+        },
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/profile/watched/remove": {
+      "post": {
+        "summary": "Mark a movie as not watched for the signed-in user",
+        "description": "Requires session cookie and X-G15-Request: 1. Idempotent; only removes the current user\u2019s watched record. Emits history update after commit.",
+        "parameters": [
+          {
+            "name": "X-G15-Request",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "movie_id"
+                ],
+                "properties": {
+                  "movie_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "removed"
+                  ],
+                  "properties": {
+                    "removed": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid movie ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "403": {
+            "description": "Same-origin JSON and X-G15-Request: 1 required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large (Flask HTML response).",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/profile/watchlist": {
+      "get": {
+        "summary": "Current user watchlist and watched movie IDs",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ids",
+                    "watched_ids"
+                  ],
+                  "properties": {
+                    "ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "watched_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "ids": [],
+                  "watched_ids": []
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "User or upstream service unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Profile"
+        ]
+      },
+      "post": {
+        "summary": "Add/remove a movie from current user watchlist",
+        "parameters": [
+          {
+            "name": "X-G15-Request",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "movie_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "add": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "movie_id",
+                  "add"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "in_watchlist"
+                  ],
+                  "properties": {
+                    "in_watchlist": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "403": {
+            "description": "Same-origin JSON and X-G15-Request: 1 required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Movie not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "409": {
+            "description": "Movie already watched",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large (Flask HTML response).",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/profile/watched/add": {
+      "post": {
+        "summary": "Mark movie watched and remove from watchlist atomically",
+        "parameters": [
+          {
+            "name": "X-G15-Request",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "movie_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "movie_id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "watched"
+                  ],
+                  "properties": {
+                    "watched": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "403": {
+            "description": "Same-origin JSON and X-G15-Request: 1 required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Movie not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large (Flask HTML response).",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/profile/recommendation-filters": {
+      "get": {
+        "summary": "Get genre/language choices and filter limits.",
+        "security": [
+          {
+            "ProfileSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilterOptions"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable; retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          }
+        },
+        "description": "Actors/directors are free-text names, not catalog option lists. Language values remain codes; clients may display full names. Generation is not connected.",
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/profile/recommendation-requests": {
+      "post": {
+        "summary": "Validate and return filters only; no persistence, dispatch or generation.",
+        "security": [
+          {
+            "ProfileSession": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "filters"
+                ],
+                "properties": {
+                  "filters": {
+                    "$ref": "#/components/schemas/RecommendationFilters"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "description": "Invalid filters or identifiers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "403": {
+            "description": "Same-origin JSON and X-G15-Request: 1 required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable; retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "200": {
+            "description": "Filters validated and normalized. No DB write, queue or agent call.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "user_id",
+                    "source",
+                    "filters",
+                    "generation_available"
+                  ],
+                  "properties": {
+                    "user_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "user_requested"
+                      ]
+                    },
+                    "filters": {
+                      "$ref": "#/components/schemas/RecommendationFilters"
+                    },
+                    "generation_available": {
+                      "type": "boolean",
+                      "enum": [
+                        false
+                      ]
+                    }
+                  }
+                },
+                "example": {
+                  "user_id": "11111111-1111-4111-8111-111111111111",
+                  "source": "user_requested",
+                  "filters": {
+                    "genres": [
+                      "Drama"
+                    ],
+                    "languages": [
+                      "en"
+                    ],
+                    "actors": [],
+                    "directors": [],
+                    "year_from": null,
+                    "year_to": null,
+                    "duration": "any",
+                    "count": 10
+                  },
+                  "generation_available": false
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large (Flask HTML response).",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-G15-Request",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            }
+          }
+        ],
+        "description": "Uses signed-in user ID. Forwards to Recommendation Service POST /context/recommendation-requests.",
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/profile/recommendations": {
+      "get": {
+        "summary": "Read recommendations for signed-in user.",
+        "security": [
+          {
+            "ProfileSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "source",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "auto",
+                "user_requested"
+              ],
+              "default": "all"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items",
+                    "total",
+                    "offset",
+                    "limit"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Recommendation"
+                      }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "offset": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 100
+                    }
+                  }
+                },
+                "example": {
+                  "items": [],
+                  "total": 0,
+                  "offset": 0,
+                  "limit": 25
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "User or upstream service unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid source or offset.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "description": "Always scoped to the current session user. 25 results per page.",
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/internal/recommendation-users": {
+      "get": {
+        "summary": "List user IDs for background agent.",
+        "security": [
+          {
+            "AgentContextToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User IDs with next_cursor, or context with as_of, watched and watchlist pages.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "user_ids",
+                    "next_cursor"
+                  ],
+                  "properties": {
+                    "user_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "next_cursor": {
+                      "type": "string",
+                      "format": "uuid",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "user_ids": [
+                    "11111111-1111-4111-8111-111111111111",
+                    "22222222-2222-4222-8222-222222222222"
+                  ],
+                  "next_cursor": "22222222-2222-4222-8222-222222222222"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination or UUID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid agent context token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "403": {
+            "description": "Cross-site request rejected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "404": {
+            "description": "Disabled or user not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Database unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          }
+        },
+        "tags": [
+          "Internal API"
+        ],
+        "description": "Internal adapter for Recommendation Service Context API. Agent clients should use Recommendation Service /context/users endpoints."
+      }
+    },
+    "/internal/recommendation-context/{user_id}": {
+      "get": {
+        "summary": "Watched/watchlist pages with raw recency timestamps.",
+        "security": [
+          {
+            "AgentContextToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "watched_offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "watchlist_offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User IDs with next_cursor, or context with as_of, watched and watchlist pages.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "user_id",
+                    "as_of",
+                    "watched",
+                    "watchlist"
+                  ],
+                  "properties": {
+                    "user_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "as_of": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "watched": {
+                      "type": "object",
+                      "required": [
+                        "items",
+                        "total",
+                        "offset",
+                        "limit",
+                        "next_offset"
+                      ],
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "movie_id",
+                              "watched_at",
+                              "recorded_at"
+                            ],
+                            "properties": {
+                              "movie_id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "watched_at": {
+                                "type": "string",
+                                "format": "date-time",
+                                "nullable": true
+                              },
+                              "recorded_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 1000
+                        },
+                        "next_offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "nullable": true
+                        }
+                      }
+                    },
+                    "watchlist": {
+                      "type": "object",
+                      "required": [
+                        "items",
+                        "total",
+                        "offset",
+                        "limit",
+                        "next_offset"
+                      ],
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "movie_id",
+                              "added_at"
+                            ],
+                            "properties": {
+                              "movie_id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "added_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 1000
+                        },
+                        "next_offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "nullable": true
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "user_id": "11111111-1111-4111-8111-111111111111",
+                  "as_of": "2026-10-09T16:00:00+00:00",
+                  "watched": {
+                    "items": [
+                      {
+                        "movie_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                        "watched_at": "2026-10-08T20:30:00+00:00",
+                        "recorded_at": "2026-10-08T20:35:00+00:00"
+                      },
+                      {
+                        "movie_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                        "watched_at": null,
+                        "recorded_at": "2026-10-01T10:00:00+00:00"
+                      }
+                    ],
+                    "total": 3,
+                    "offset": 0,
+                    "limit": 2,
+                    "next_offset": 2
+                  },
+                  "watchlist": {
+                    "items": [
+                      {
+                        "movie_id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+                        "added_at": "2026-10-09T12:00:00+00:00"
+                      }
+                    ],
+                    "total": 1,
+                    "offset": 0,
+                    "limit": 2,
+                    "next_offset": null
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pagination or UUID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid agent context token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "403": {
+            "description": "Cross-site request rejected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "404": {
+            "description": "Disabled or user not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Database unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          }
+        },
+        "tags": [
+          "Internal API"
+        ],
+        "description": "Internal adapter for Recommendation Service Context API. Agent clients should use Recommendation Service /context/users endpoints."
+      }
+    },
+    "/profile/watched/move-to-list": {
+      "post": {
+        "summary": "Move a watched movie to My list",
+        "description": "Requires session cookie and X-G15-Request: 1. Atomically removes watched status and adds watchlist membership for the signed-in user. Idempotent.",
+        "parameters": [
+          {
+            "name": "X-G15-Request",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "movie_id"
+                ],
+                "properties": {
+                  "movie_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "watched",
+                    "in_watchlist"
+                  ],
+                  "properties": {
+                    "watched": {
+                      "type": "boolean",
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "in_watchlist": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid movie ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "403": {
+            "description": "Same-origin JSON and X-G15-Request: 1 required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large (Flask HTML response).",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Movie not found"
+          }
+        },
+        "tags": [
+          "Profile"
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Health": {
+        "type": "object",
+        "properties": {
+          "service": {
+            "type": "string",
+            "enum": [
+              "user-service"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "unavailable"
+            ]
+          },
+          "database": {
+            "type": "string",
+            "enum": [
+              "up",
+              "down"
+            ]
+          }
+        },
+        "required": [
+          "service",
+          "status",
+          "database"
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[A-Za-z0-9_.-]+$",
+            "description": "Unique across all accounts, ignoring case. Registration trims and lowercases it."
+          },
+          "avatar_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "display_name",
+          "username",
+          "avatar_id"
+        ]
+      },
+      "UserResponse": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "required": [
+          "user"
+        ]
+      },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "description": "Trimmed and lowercased before lookup."
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "writeOnly": true,
+            "description": "Required. No character-count policy."
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "description": "Trimmed and lowercased before lookup."
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "writeOnly": true,
+            "description": "Required. No character-count policy."
+          },
+          "display_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "Trimmed before validation; need not be unique."
+          },
+          "password_confirmation": {
+            "type": "string",
+            "minLength": 1,
+            "writeOnly": true,
+            "description": "Must match password. Not stored."
+          },
+          "username": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^[A-Za-z0-9_.-]+$",
+            "description": "Unique across all accounts, ignoring case. Registration trims and lowercases it."
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "display_name",
+          "password_confirmation",
+          "username"
+        ]
+      },
+      "ResetRequest": {
+        "type": "object",
+        "properties": {
+          "table": {
+            "type": "string",
+            "enum": [
+              "all",
+              "users",
+              "user_profiles",
+              "user_sessions",
+              "watched_movies",
+              "watchlist_movies"
+            ]
+          }
+        },
+        "required": [
+          "table"
+        ],
+        "additionalProperties": false
+      },
+      "ResetResponse": {
+        "type": "object",
+        "properties": {
+          "cleared_tables": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "users",
+                "user_profiles",
+                "user_sessions",
+                "watched_movies",
+                "watchlist_movies"
+              ]
+            }
+          },
+          "deleted_rows": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "required": [
+          "cleared_tables",
+          "deleted_rows"
+        ]
+      },
+      "RecommendationFilters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "genres": {
+            "type": "array",
+            "maxItems": 10,
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "description": "Values from current catalog filter choices."
+          },
+          "languages": {
+            "type": "array",
+            "maxItems": 10,
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "description": "Values from current catalog filter choices."
+          },
+          "actors": {
+            "type": "array",
+            "maxItems": 10,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "default": [],
+            "description": "Free-text names; trim, deduplicate case-insensitively; reject control characters. No catalog membership requirement."
+          },
+          "directors": {
+            "type": "array",
+            "maxItems": 10,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "default": [],
+            "description": "Free-text names; trim, deduplicate case-insensitively; reject control characters. No catalog membership requirement."
+          },
+          "year_from": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1888,
+            "description": "Upper bound is current year + 5; from must not exceed to."
+          },
+          "year_to": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1888,
+            "description": "Upper bound is current year + 5; from must not exceed to."
+          },
+          "duration": {
+            "type": "string",
+            "enum": [
+              "any",
+              "short",
+              "medium",
+              "long",
+              "epic"
+            ],
+            "default": "any"
+          },
+          "count": {
+            "type": "integer",
+            "enum": [
+              5,
+              10,
+              15,
+              20
+            ],
+            "default": 10
+          }
+        }
+      },
+      "FilterOptions": {
+        "type": "object",
+        "required": [
+          "version",
+          "choices",
+          "durations",
+          "year_min",
+          "year_max",
+          "counts",
+          "max_selections",
+          "generation_available"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "choices": {
+            "type": "object",
+            "required": [
+              "genres",
+              "languages"
+            ],
+            "properties": {
+              "genres": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "languages": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "durations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "label",
+                "min",
+                "max"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "min": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "nullable": true
+                },
+                "max": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "year_min": {
+            "type": "integer"
+          },
+          "year_max": {
+            "type": "integer"
+          },
+          "counts": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "enum": [
+                5,
+                10,
+                15,
+                20
+              ]
+            }
+          },
+          "max_selections": {
+            "type": "integer"
+          },
+          "generation_available": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          }
+        }
+      },
+      "Recommendation": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "movie_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000
+          },
+          "score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "user_requested"
+            ]
+          }
+        },
+        "required": [
+          "source"
+        ]
+      },
+      "Profile": {
+        "type": "object",
+        "required": [
+          "display_name",
+          "bio",
+          "avatar_id"
+        ],
+        "properties": {
+          "display_name": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "avatar_id": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "SessionCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "g15_session",
+        "description": "HttpOnly cookie set by login/registration. Seven-day expiry; Secure outside local HTTP startup. Browser sends it automatically through /api/user."
+      },
+      "ResetToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Separate AUTH_RESET_TOKEN. Requires AUTH_RESET_ENABLED=true. Not a normal user session."
+      },
+      "ProfileSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "g15_session"
+      },
+      "WatchedCleanupToken": {
+        "type": "http",
+        "scheme": "bearer"
+      },
+      "AgentContextToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Private read-only agent token."
+      }
+    }
+  }
+}

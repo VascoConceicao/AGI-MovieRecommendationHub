@@ -1,0 +1,128 @@
+{
+ "api_completion_s_poll_1s": 35.1,
+ "candidate_pool_sent_to_llm": 40,
+ "case": "broad20_y2000plus",
+ "cgroup_after": {
+  "memory_current_bytes": 891744256,
+  "nr_periods": 64454,
+  "nr_throttled": 3924,
+  "system_usec": 24037930,
+  "throttled_usec": 65043742,
+  "usage_usec": 766407665,
+  "user_usec": 742369734
+ },
+ "cgroup_after_at": "2026-10-19T18:16:07.685+00:00",
+ "cgroup_before": {
+  "memory_current_bytes": 908394496,
+  "nr_periods": 64121,
+  "nr_throttled": 3657,
+  "system_usec": 23557082,
+  "throttled_usec": 60318257,
+  "usage_usec": 718767213,
+  "user_usec": 695210130
+ },
+ "cgroup_before_at": "2026-10-19T18:15:30.330+00:00",
+ "cgroup_delta": {
+  "nr_periods": 333,
+  "nr_throttled": 267,
+  "system_usec": 480848,
+  "throttled_usec": 4725485,
+  "usage_usec": 47640452,
+  "user_usec": 47159604
+ },
+ "criteria_sent": {
+  "count": 20,
+  "year_from": 2000
+ },
+ "eligible_candidates": 3900,
+ "final_status_body_keys": [
+  "attempts",
+  "created_at",
+  "duration_seconds",
+  "fallback_reason",
+  "finished_at",
+  "job_id",
+  "outcome",
+  "recommendation_count",
+  "requested_count",
+  "source",
+  "started_at",
+  "status",
+  "used_fallback"
+ ],
+ "job_id": "fe4b2d4e-4b60-4c58-86c3-be46c41b14fd",
+ "job_row": {
+  "attempts": 1,
+  "created_at": "2026-10-19T18:15:30.432Z",
+  "created_to_finished_s": 34.156,
+  "criteria": {
+   "actors": [],
+   "count": 20,
+   "directors": [],
+   "duration": "any",
+   "genres": [],
+   "languages": [],
+   "year_from": 2000,
+   "year_to": null
+  },
+  "fallback_reason": null,
+  "finished_at": "2026-10-19T18:16:04.588Z",
+  "job_duration_s": 34.063,
+  "outcome": "llm",
+  "queue_wait_s": 0.033,
+  "recommendation_count": 20,
+  "started_at": "2026-10-19T18:15:30.465Z",
+  "status": "succeeded",
+  "used_fallback": false
+ },
+ "llama": {
+  "f_keep": null,
+  "f_sim_best": null,
+  "gen_ms": 7618.87,
+  "gen_tok_per_s": 7.09,
+  "generated_tokens": 55,
+  "llama_total_ms": 32384.74,
+  "llama_total_tokens": 748,
+  "n_tokens_at_release": 2978,
+  "prompt_eval_ms": 24765.87,
+  "prompt_tok_per_s": 27.98,
+  "prompt_tokens_cached_reused": 2231,
+  "prompt_tokens_processed": 693,
+  "prompt_tokens_total": 2924,
+  "slot_selection": "LRU",
+  "truncated": 0
+ },
+ "llama_log_lines_before": 134,
+ "llama_log_slice": [
+  "5638.25.972.001 I slot get_availabl: id  0 | task -1 | selected slot by LRU, t_last = 370778463690",
+  "5638.26.004.216 I slot launch_slot_: id  0 | task 284 | processing task, is_child = 0",
+  "5638.58.389.208 I slot print_timing: id  0 | task 284 | prompt eval time =   24765.87 ms /   693 tokens (   35.74 ms per token,    27.98 tokens per second)",
+  "5638.58.389.501 I slot print_timing: id  0 | task 284 |        eval time =    7618.87 ms /    55 tokens (  141.09 ms per token,     7.09 tokens per second)",
+  "5638.58.389.751 I slot print_timing: id  0 | task 284 |       total time =   32384.74 ms /   748 tokens",
+  "5638.58.390.020 I slot print_timing: id  0 | task 284 |    graphs reused =        292",
+  "5638.58.391.904 I slot      release: id  0 | task 284 | stop processing: n_tokens = 2978, truncated = 0"
+ ],
+ "poll_count": 30,
+ "poll_trace_first_last": [
+  [
+   0.29,
+   "running"
+  ],
+  [
+   35.1,
+   "succeeded"
+  ]
+ ],
+ "post_return_s": 0.183,
+ "post_sent_at": "2026-10-19T18:15:30.330+00:00",
+ "post_status": 202,
+ "queued_or_running_before": "0",
+ "rec_logs_since": "2026-10-19T18:15:28.465+00:00",
+ "recommendation_service_warning_lines": [
+  "2026-10-19 18:16:04,547 INFO services.pipeline: Recommendations generated (user=ae8b408e, source=user_requested, requested=20, candidates=40, persisted=20, outcome=llm, attempts=1, fallback=no, llm_overlap=20, seconds=34.1)"
+ ],
+ "requested_count": 20,
+ "returned_items_api": 20,
+ "run": 7,
+ "window_phase_s": 26.0
+}

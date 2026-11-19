@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: g15-app
+resources:
+  - namespaces.yaml
+  # Historical skeleton: superseded by k8s/app (Deployments, StatefulSets,
+  # Services) and Terraform-owned namespaces. Kept for reference only;
+  # nothing applies this directory.

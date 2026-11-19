@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=77,<83"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "g15-common"
+version = "0.1.0"
+requires-python = ">=3.12"
+description = "Shared utilities for g15 backend services"
+
+[tool.setuptools]
+include-package-data = false
+packages = ["g15_common", "g15_common.db", "g15_common.monitoring", "g15_common.docs"]
+
+[tool.setuptools.package-dir]
+g15_common = "."
+
+[tool.setuptools.package-data]
+g15_common = ["static/*.html"]

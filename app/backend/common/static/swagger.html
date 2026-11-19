@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>API docs</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.33.1/swagger-ui.css">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; }
+    header { padding: 24px clamp(20px, 4vw, 60px); background: var(--ink-black); color: var(--wheat); }
+    h1 { margin: 0 0 20px; font-size: 1.6rem; }
+    [role="tablist"] { display: flex; flex-wrap: wrap; gap: 10px; }
+    [role="tab"] { padding: 12px 20px; border: 1px solid var(--dark-cyan); border-radius: 6px; background: var(--dark-teal); color: var(--wheat); font: inherit; cursor: pointer; }
+    [role="tab"][aria-selected="true"] { background: var(--golden-orange); color: var(--ink-black); border-color: var(--golden-orange); }
+    button:focus-visible { outline: 3px solid var(--pearl-aqua); outline-offset: 3px; }
+    #status { margin: 0; padding: 18px 24px; background: var(--wheat); color: var(--ink-black); }
+    #status[hidden] { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>API docs</h1>
+    <nav role="tablist" aria-label="Backend services">
+      <button id="tab-user" role="tab" aria-selected="true" aria-controls="docs" data-service="user">User</button>
+      <button id="tab-movie" role="tab" aria-selected="false" aria-controls="docs" data-service="movie" tabindex="-1">Movie</button>
+      <button id="tab-recommendation" role="tab" aria-selected="false" aria-controls="docs" data-service="recommendation" tabindex="-1">Recommendation</button>
+    </nav>
+  </header>
+  <p id="status" role="status">Loading API docs…</p>
+  <section id="docs" role="tabpanel" aria-labelledby="tab-user" aria-busy="true">
+    <div id="swagger-ui"></div>
+  </section>
+  <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.33.1/swagger-ui-bundle.js"></script>
+  <script>
+    const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+    const panel = document.getElementById('docs');
+    const status = document.getElementById('status');
+    let controller;
+
+    async function select(tab) {
+      if (controller) controller.abort();
+      controller = new AbortController();
+      const current = controller;
+      const service = tab.dataset.service;
+      tabs.forEach(button => {
+        const active = button === tab;
+        button.setAttribute('aria-selected', String(active));
+        button.tabIndex = active ? 0 : -1;
+      });
+      panel.setAttribute('aria-labelledby', tab.id);
+      panel.setAttribute('aria-busy', 'true');
+      document.getElementById('swagger-ui').replaceChildren();
+      status.hidden = false;
+      status.textContent = `Loading ${tab.textContent} API docs…`;
+      try {
+        // Definitions stay in the service. No combined or copied spec.
+        const response = await fetch(`/api/${service}/static/swagger.json`, {
+          signal: current.signal, cache: 'no-store',
+        });
+        if (!response.ok) throw new Error('Spec unavailable');
+        const spec = await response.json();
+        if (current !== controller) return;
+        window.ui = SwaggerUIBundle({
+          spec, dom_id: '#swagger-ui',
+          withCredentials: true, persistAuthorization: false,
+          validatorUrl: null, presets: [SwaggerUIBundle.presets.apis],
+        });
+        status.hidden = true;
+      } catch (error) {
+        if (current !== controller) return;
+        status.textContent = `Could not load ${tab.textContent} docs. Check the service and your internet connection, then select the tab again.`;
+      } finally {
+        if (current === controller) panel.setAttribute('aria-busy', 'false');
+      }
+    }
+
+    tabs.forEach((tab, index) => {
+      tab.addEventListener('click', () => select(tab));
+      tab.addEventListener('keydown', event => {
+        let next;
+        if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+        if (event.key === 'ArrowLeft') next = (index + tabs.length - 1) % tabs.length;
+        if (event.key === 'Home') next = 0;
+        if (event.key === 'End') next = tabs.length - 1;
+        if (next !== undefined) {
+          event.preventDefault();
+          tabs[next].focus();
+          select(tabs[next]);
+        }
+      });
+    });
+    (async () => {
+      try {
+        const response = await fetch('/assets/palette.json');
+        if (response.ok) {
+          const palette = await response.json();
+          for (const [name, color] of Object.entries(palette)) {
+            document.documentElement.style.setProperty(`--${name.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`, color);
+          }
+        }
+      } catch (error) {
+        // Palette loading must not prevent API docs from opening.
+      } finally {
+        select(tabs[0]);
+      }
+    })();
+  </script>
+</body>
+</html>

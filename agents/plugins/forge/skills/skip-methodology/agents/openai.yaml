@@ -1,0 +1,4 @@
+interface:
+  display_name: "Skip Methodology"
+  short_description: "Do requested work without Forge workflow steps"
+  default_prompt: "Use $skip-methodology to carry out my request directly without the Forge methodology."

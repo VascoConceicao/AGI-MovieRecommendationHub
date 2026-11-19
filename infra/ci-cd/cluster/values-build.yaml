@@ -1,0 +1,65 @@
+# Build runner (Kaniko + Skopeo jobs). Same chart/version as the existing test runner (0.94.0 -> runner v19.5.0).
+# Runner tags / protected / untagged / locked are set in the GitLab UI when the runner is created (authentication token).
+gitlabUrl: https://gitlab.rnl.tecnico.ulisboa.pt
+concurrent: 1
+checkInterval: 10
+unregisterRunners: false
+rbac:
+  create: true
+  clusterWideAccess: false
+  rules:
+    - resources: [events]
+      verbs: [list, watch]
+    - resources: [pods]
+      verbs: [create, delete, get, list, watch]
+    - resources: [pods/attach, pods/exec]
+      verbs: [create, delete, get, patch]
+    - resources: [pods/log]
+      verbs: [get, list]
+    - resources: [secrets]
+      verbs: [create, delete, get, update]
+    - resources: [serviceaccounts]
+      verbs: [get]
+    - resources: [services]
+      verbs: [create, get]
+serviceAccount:
+  create: true
+resources:
+  requests: {cpu: 50m, memory: 64Mi}
+  limits: {cpu: 250m, memory: 128Mi}
+runners:
+  secret: gitlab-runner-token
+  config: |
+    [[runners]]
+      limit = 1
+      request_concurrency = 2   # job REQUESTS in flight (removes long-polling delay); parallel jobs stay capped by limit=1 and concurrent=1
+      [runners.kubernetes]
+        namespace = "g15-build"
+        image = "registry.gitlab.com/gitlab-ci-utils/container-images/kaniko@sha256:7795cec509a50a71378cc2c365f55c555ee3a05834d8eb1cd2552df5e66d44d8"
+        privileged = false
+        service_account = "ci-build"
+        automount_service_account_token = false
+        pull_policy = ["if-not-present"]
+        allowed_pull_policies = ["if-not-present"]
+        allowed_images = ["registry.gitlab.com/gitlab-ci-utils/container-images/kaniko@sha256:7795cec509a50a71378cc2c365f55c555ee3a05834d8eb1cd2552df5e66d44d8", "quay.io/skopeo/stable@sha256:2b7d76dde38c5924e1945348840c58786fc192201f2fd545832e58b53d26f7b8"]
+        allowed_services = []
+        cpu_request = "500m"
+        cpu_limit = "1500m"
+        memory_request = "2Gi"
+        memory_limit = "4Gi"
+        ephemeral_storage_request = "1Gi"
+        ephemeral_storage_limit = "6Gi"
+        helper_cpu_request = "50m"
+        helper_cpu_limit = "250m"
+        helper_memory_request = "64Mi"
+        helper_memory_limit = "256Mi"
+        helper_ephemeral_storage_limit = "2Gi"
+        poll_timeout = 300
+        [runners.kubernetes.node_selector]
+          "kubernetes.io/hostname" = "g15-worker2"
+        [runners.kubernetes.pod_labels]
+          ci-role = "build"
+        [runners.kubernetes.build_container_security_context]
+          allow_privilege_escalation = false
+        [runners.kubernetes.helper_container_security_context]
+          allow_privilege_escalation = false

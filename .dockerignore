@@ -1,0 +1,16 @@
+.git
+**/.env
+**/.env.*
+**/.venv
+**/node_modules
+**/.angular
+**/coverage
+**/__pycache__
+**/.pytest_cache
+**/.run
+**/.terraform
+**/*.tfstate
+**/*.tfstate.*
+**/kubeconfig.out
+**/db-passwords.env
+**/dist

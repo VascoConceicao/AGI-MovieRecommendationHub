@@ -1,0 +1,14 @@
+[run]
+branch = True
+source =
+    .
+    db/ingestion
+omit =
+    tests/*
+    .venv/*
+    .run/*
+    coverage/*
+    build/*
+
+[report]
+show_missing = True

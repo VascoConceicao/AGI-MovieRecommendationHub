@@ -1,0 +1,19 @@
+# Only the Recommendation Service may call the inference server, and only on its port. The policy selects ONLY the inference
+# Pods, so nothing else in the cluster is affected (egress stays open: the server must reach Hugging Face once).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: inference-only-from-recommendation
+spec:
+  podSelector:
+    matchLabels:
+      app: inference
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: recommendation-service
+      ports:
+        - protocol: TCP
+          port: 4210

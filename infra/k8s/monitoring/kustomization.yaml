@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: g15-monitoring
+resources:
+  - servicemonitor.yaml
+  # kube-prometheus-stack itself is installed by terraform/app
+  # (Helm release); only scrape configs and dashboards live here.
+  # NOTE: servicemonitor.yaml is applied by Terraform
+  # (kubernetes_manifest in infra/terraform/app), not by kubectl -k.

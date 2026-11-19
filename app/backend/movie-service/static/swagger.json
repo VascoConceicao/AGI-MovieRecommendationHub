@@ -1,0 +1,1269 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Movie Service API",
+    "version": "0.1.0",
+    "description": "Implemented routes only. Requests go through the owning service."
+  },
+  "servers": [
+    {
+      "url": "/api/movie",
+      "description": "Same-origin Nginx or Angular development proxy"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Administration"
+    },
+    {
+      "name": "Monitoring"
+    },
+    {
+      "name": "Movies"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Monitoring"
+        ],
+        "operationId": "movieHealth",
+        "summary": "Check database readiness",
+        "responses": {
+          "200": {
+            "description": "Database is reachable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                },
+                "example": {
+                  "service": "movie-service",
+                  "status": "ok",
+                  "database": "up"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Database unavailable or unconfigured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                },
+                "example": {
+                  "service": "movie-service",
+                  "status": "unavailable",
+                  "database": "down"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "tags": [
+          "Monitoring"
+        ],
+        "operationId": "movieMetrics",
+        "summary": "Read Prometheus metrics",
+        "responses": {
+          "200": {
+            "description": "Prometheus text exposition.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/movies": {
+      "get": {
+        "summary": "Look up movie IDs or browse the local catalog.",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "movies"
+                      ],
+                      "properties": {
+                        "movies": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Movie"
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "$ref": "#/components/schemas/MoviePage"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable; retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional comma-separated list of 1\u201350 UUIDs. When provided, q/offset are ignored; missing movies omitted."
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "default": ""
+            },
+            "description": "Title/original-title substring; browse mode only."
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000,
+              "default": 0
+            },
+            "description": ""
+          }
+        ],
+        "description": "With ids, returns up to 50 requested movies. Without ids, browses catalog by title with q and offset, 25 per page.",
+        "tags": [
+          "Movies"
+        ]
+      },
+      "post": {
+        "summary": "Create/reuse agent-supplied movie. Runtime never fetches provider data.",
+        "responses": {
+          "201": {
+            "description": "Movie created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "movie",
+                    "created"
+                  ],
+                  "properties": {
+                    "movie": {
+                      "$ref": "#/components/schemas/Movie"
+                    },
+                    "created": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable; retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "200": {
+            "description": "Existing identity reused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "movie",
+                    "created"
+                  ],
+                  "properties": {
+                    "movie": {
+                      "$ref": "#/components/schemas/Movie"
+                    },
+                    "created": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Writes disabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large (Flask HTML response).",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Cross-site requests rejected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "MovieWriteToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MovieInput"
+              }
+            }
+          }
+        },
+        "tags": [
+          "Movies"
+        ]
+      }
+    },
+    "/posters/{key}": {
+      "get": {
+        "summary": "Serve local JPEG poster.",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JPEG",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          }
+        },
+        "tags": [
+          "Movies"
+        ]
+      }
+    },
+    "/admin/reset-movie-db": {
+      "post": {
+        "summary": "Clear movies, watched/watchlist entries, and stored posters; retry pending operation after partial failure.",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "cleared_tables",
+                    "deleted_rows",
+                    "watched_deleted_rows",
+                    "operation_id"
+                  ],
+                  "properties": {
+                    "cleared_tables": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "deleted_rows": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    },
+                    "watched_deleted_rows": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "operation_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Database unavailable or cleanup pending. Retry same reset to resume.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "error"
+                  ],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "cleanup_pending": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reset disabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large (Flask HTML response).",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Cross-site requests rejected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "MovieResetToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "table"
+                ],
+                "properties": {
+                  "table": {
+                    "type": "string",
+                    "enum": [
+                      "all",
+                      "movies"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Administration"
+        ]
+      }
+    },
+    "/movies/duration": {
+      "post": {
+        "summary": "Sum duration for up to 1000 unique movie IDs.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "ids"
+                ],
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 1000,
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "total_minutes",
+                    "missing_count"
+                  ],
+                  "properties": {
+                    "total_minutes": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "missing_count": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                },
+                "example": {
+                  "total_minutes": 240,
+                  "missing_count": 0
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid ID batch.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Movie DB unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large (Flask HTML response).",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Movies"
+        ]
+      }
+    },
+    "/movies/ids": {
+      "get": {
+        "summary": "Page through existing catalog IDs for ingestion.",
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ids",
+                    "next_cursor"
+                  ],
+                  "properties": {
+                    "ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "next_cursor": {
+                      "type": "string",
+                      "format": "uuid",
+                      "nullable": true
+                    }
+                  }
+                },
+                "example": {
+                  "ids": [],
+                  "next_cursor": null
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid cursor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Movie database unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          }
+        },
+        "description": "Up to 1000 movie IDs per page; use next_cursor as after. Null means no next page.",
+        "tags": [
+          "Movies"
+        ]
+      }
+    },
+    "/movies/browse": {
+      "post": {
+        "summary": "Browse local movies, excluding already watched IDs",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  },
+                  "q": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "exclude_ids": {
+                    "type": "array",
+                    "maxItems": 10000,
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MoviePage"
+                },
+                "example": {
+                  "movies": [],
+                  "total": 0,
+                  "offset": 0,
+                  "limit": 25
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid search parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large (Flask HTML response).",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Movies"
+        ]
+      }
+    },
+    "/movies/filter-options": {
+      "get": {
+        "summary": "Distinct catalog genres and languages.",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "genres",
+                    "languages"
+                  ],
+                  "properties": {
+                    "genres": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "languages": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "genres": [
+                    "Comedy",
+                    "Drama"
+                  ],
+                  "languages": [
+                    "en",
+                    "pt"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Movie database unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          }
+        },
+        "tags": [
+          "Movies"
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Health": {
+        "type": "object",
+        "properties": {
+          "service": {
+            "type": "string",
+            "enum": [
+              "movie-service"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "unavailable"
+            ]
+          },
+          "database": {
+            "type": "string",
+            "enum": [
+              "up",
+              "down"
+            ]
+          }
+        },
+        "required": [
+          "service",
+          "status",
+          "database"
+        ]
+      },
+      "MovieInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source",
+          "source_id",
+          "title",
+          "synopsis",
+          "genres",
+          "actors",
+          "directors",
+          "duration_minutes"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]{0,39}$"
+          },
+          "source_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.-]{1,100}$"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "original_title": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 300
+          },
+          "synopsis": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "release_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "movie_type": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 300
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "genres": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 200,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "actors": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 200,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "directors": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 200,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "languages": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 200,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "nullable": true
+          },
+          "countries": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 200,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "nullable": true
+          },
+          "poster_key": {
+            "type": "string",
+            "nullable": true,
+            "description": "Existing local content-addressed JPEG key; no remote URLs.",
+            "pattern": "^[a-f0-9]{64}\\.jpg$"
+          }
+        },
+        "description": "Identity, title, synopsis, genres, actors, directors and positive duration_minutes are required. Other missing metadata is stored as null."
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "Movie": {
+        "type": "object",
+        "required": [
+          "source",
+          "source_id",
+          "title",
+          "original_title",
+          "synopsis",
+          "release_date",
+          "movie_type",
+          "duration_minutes",
+          "genres",
+          "actors",
+          "directors",
+          "languages",
+          "countries",
+          "poster_key",
+          "id",
+          "created_at",
+          "poster_url"
+        ],
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "original_title": {
+            "type": "string",
+            "nullable": true
+          },
+          "synopsis": {
+            "type": "string",
+            "nullable": true
+          },
+          "release_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "movie_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000,
+            "nullable": true
+          },
+          "genres": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "nullable": true
+          },
+          "actors": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "nullable": true
+          },
+          "directors": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "nullable": true
+          },
+          "languages": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "nullable": true
+          },
+          "countries": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "nullable": true
+          },
+          "poster_key": {
+            "type": "string",
+            "nullable": true,
+            "description": "Existing local content-addressed JPEG key; no remote URLs."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "poster_url": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "MoviePage": {
+        "type": "object",
+        "required": [
+          "movies",
+          "total",
+          "offset",
+          "limit"
+        ],
+        "properties": {
+          "movies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Movie"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "enum": [
+              25
+            ]
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "MovieWriteToken": {
+        "type": "http",
+        "scheme": "bearer"
+      },
+      "MovieResetToken": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

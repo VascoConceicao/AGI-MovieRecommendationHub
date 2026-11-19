@@ -1,0 +1,23 @@
+{
+  "/api/movie": {
+    "target": "http://127.0.0.1:4206",
+    "secure": false,
+    "pathRewrite": {
+      "^/api/movie": ""
+    }
+  },
+  "/api/recommendation": {
+    "target": "http://127.0.0.1:4207",
+    "secure": false,
+    "pathRewrite": {
+      "^/api/recommendation": ""
+    }
+  },
+  "/api/user": {
+    "target": "http://127.0.0.1:4208",
+    "secure": false,
+    "pathRewrite": {
+      "^/api/user": ""
+    }
+  }
+}

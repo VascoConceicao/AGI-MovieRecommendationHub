@@ -1,0 +1,38 @@
+# Permissions of the deploy job. The Role lives in g15-app (where the objects are); the RoleBinding there names the
+# ServiceAccount that lives in g15-cd (where the job pod runs). No ClusterRole, no create, no delete, no Secrets/PVC/StatefulSet.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: ci-deployer, namespace: g15-app}
+rules:
+  # read-only, needed for rollout status / image identity / rollback
+  - apiGroups: ["apps"]
+    resources: [deployments, replicasets]
+    verbs: [get, list, watch]
+  - apiGroups: [""]
+    resources: [pods, events]
+    verbs: [get, list, watch]
+  - apiGroups: ["batch"]
+    resources: [cronjobs, jobs]
+    verbs: [get, list, watch]
+  # write: ONLY the five approved app Deployments (never inference, never databases)
+  - apiGroups: ["apps"]
+    resources: [deployments]
+    resourceNames: [frontend, proxy, user-service, movie-service, recommendation-service]
+    verbs: [patch, update]
+  # write: ONLY the agent CronJob (image change; the admission policy forbids touching schedule/suspend)
+  - apiGroups: ["batch"]
+    resources: [cronjobs]
+    resourceNames: [recommendation-agent]
+    verbs: [patch, update]
+  # deployment state / lock (ConfigMap is created once by an admin; no create right here)
+  - apiGroups: [""]
+    resources: [configmaps]
+    resourceNames: [cd-state]
+    verbs: [get, patch, update]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: ci-deployer, namespace: g15-app}
+subjects:
+  - {kind: ServiceAccount, name: ci-deployer, namespace: g15-cd}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: ci-deployer}

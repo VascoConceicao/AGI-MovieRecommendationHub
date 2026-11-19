@@ -1,0 +1,29 @@
+html { color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--ink-black); color: var(--wheat); font-family: 'Avenir Next', 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
+button { border: 0; font: inherit; cursor: pointer; }
+button:disabled, fieldset:disabled { opacity: .65; cursor: default; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--golden-orange); outline-offset: 4px; }
+.secondary-button { border: 1px solid var(--dark-cyan); color: var(--wheat); background: transparent; border-radius: 5px; padding: 12px 18px; }
+.account-card { background: var(--dark-teal); border-radius: 12px; padding: clamp(25px, 5vw, 55px); margin-top: 70px; }
+.account-card h1 { font: 400 clamp(2rem, 5vw, 3.5rem)/1.15 Georgia, serif; overflow-wrap: anywhere; }
+.account-card p { line-height: 1.65; }
+.account-card .eyebrow { color: var(--golden-orange); font-size: .65rem; letter-spacing: .14em; }
+.account-card dl { display: grid; grid-template-columns: auto 1fr; gap: 14px 25px; padding: 25px 0; border-block: 1px solid var(--dark-cyan); margin: 30px 0; }
+.account-card dt { color: var(--pearl-aqua); }
+.account-card dd { margin: 0; overflow-wrap: anywhere; }
+.coming-soon { color: var(--pearl-aqua); font-size: .85rem; }
+.account-error { background: var(--brown-red); padding: 12px; border-radius: 5px; }
+app-health main { max-width: 880px; margin: 64px auto; padding: 0 24px; }
+app-health button { border-radius: 5px; background: var(--golden-orange); color: var(--ink-black); padding: 12px 20px; }
+app-health ul { list-style: none; padding: 0; display: grid; gap: 16px; margin-top: 32px; }
+app-health li { border: 1px solid var(--dark-cyan); border-left: 5px solid var(--golden-orange); border-radius: 8px; background: var(--dark-teal); padding: 20px; }
+app-health li[data-state='up'] { border-left-color: var(--pearl-aqua); }
+app-health li[data-state='down'], app-health li[data-state='unreachable'] { border-left-color: var(--rusty-spice); }
+app-health h2 { font-size: 1.15rem; margin: 0 0 8px; }
+app-health li p { margin: 0; }
+
+body:has(dialog[open]) { overflow: hidden; }
+
+.credits-link { color: var(--pearl-aqua); font-size: .85rem; text-decoration: none; }
+.credits-link:hover { text-decoration: underline; }

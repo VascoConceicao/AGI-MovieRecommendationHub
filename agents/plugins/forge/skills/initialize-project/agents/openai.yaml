@@ -1,0 +1,4 @@
+interface:
+  display_name: "Initialize Project"
+  short_description: "Interview users and personalize project docs"
+  default_prompt: "Use $initialize-project to interview me and personalize this project's documentation."

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Push Changes"
+  short_description: "Create coherent commits and push them safely"
+  default_prompt: "Use $push to review my changes, create coherent commits, and push the current branch."
+policy:
+  allow_implicit_invocation: false

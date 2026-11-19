@@ -1,0 +1,50 @@
+# kube-prometheus-stack values for a 3x2GiB self-hosted cluster.
+# No persistent storage: monitoring data is ephemeral. Retention is short
+# (2d) and requests/limits are sized for the course demo, not production.
+grafana:
+  enabled: true
+  adminPassword: "g15-local-only"
+  grafana.ini:
+    database:
+      wal: true
+    plugins:
+      preinstall_disabled: true
+  # First boot performs migrations and plugin loading on shared-core VMs.
+  # Let startup finish before the liveness probe can restart Grafana.
+  startupProbe:
+    httpGet:
+      path: /api/health
+      port: grafana
+    failureThreshold: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      uid: loki
+      url: http://loki:3100
+      access: proxy
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+prometheus:
+  enabled: true
+  prometheusSpec:
+    retention: 2d
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+alertmanager:
+  enabled: false
+kubeStateMetrics:
+  enabled: true
+nodeExporter:
+  enabled: true

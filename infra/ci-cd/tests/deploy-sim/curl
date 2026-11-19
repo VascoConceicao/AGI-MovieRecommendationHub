@@ -1,0 +1,3 @@
+#!/bin/sh
+while read -r p; do case "$*" in *"$p"*) exit 22;; esac; done < "${SIM_HEALTH_FAIL:-/dev/null}"
+exit 0

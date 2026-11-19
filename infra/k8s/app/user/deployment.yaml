@@ -1,0 +1,80 @@
+# User service: same pattern as the movie service.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+        - name: user-service
+          image: g15-user-service:local
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 4208
+          env:
+            - name: MOVIE_SERVICE_URL
+              value: "http://movie-service:4206"
+            - name: RECOMMENDATION_SERVICE_URL
+              value: "http://recommendation-service:4207"
+            - name: RECOMMENDATION_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: g15-db-passwords
+                  key: RECOMMENDATION_API_TOKEN
+            - name: AGENT_CONTEXT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: g15-agent-context
+                  key: AGENT_CONTEXT_TOKEN
+            - name: USER_DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: g15-app-config
+                  key: USER_DB_USER
+            - name: USER_DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: g15-app-config
+                  key: USER_DB_NAME
+            - name: USER_DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: g15-app-config
+                  key: USER_DB_HOST
+            - name: USER_DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: g15-app-config
+                  key: USER_DB_PORT
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: g15-db-passwords
+                  key: USER_DB_PASSWORD
+            - name: DATABASE_URL
+              value: "postgresql://$(USER_DB_USER):$(DB_PASSWORD)@$(USER_DB_HOST):$(USER_DB_PORT)/$(USER_DB_NAME)"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4208
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 4208
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

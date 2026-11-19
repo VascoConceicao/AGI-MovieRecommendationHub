@@ -1,0 +1,1945 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Recommendation Service API",
+    "version": "0.1.0",
+    "description": "Implemented routes only. Requests go through the owning service."
+  },
+  "servers": [
+    {
+      "url": "/api/recommendation",
+      "description": "Same-origin Nginx or Angular development proxy"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Administration"
+    },
+    {
+      "name": "Context API",
+      "description": "Agent context. Recommendation Service reads through User Service internal APIs."
+    },
+    {
+      "name": "Monitoring"
+    },
+    {
+      "name": "Recommendations"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Monitoring"
+        ],
+        "operationId": "recommendationHealth",
+        "summary": "Check database readiness",
+        "responses": {
+          "200": {
+            "description": "Database is reachable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                },
+                "example": {
+                  "service": "recommendation-service",
+                  "status": "ok",
+                  "database": "up"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Database unavailable or unconfigured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                },
+                "example": {
+                  "service": "recommendation-service",
+                  "status": "unavailable",
+                  "database": "down"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "tags": [
+          "Monitoring"
+        ],
+        "operationId": "recommendationMetrics",
+        "summary": "Read Prometheus metrics",
+        "responses": {
+          "200": {
+            "description": "Prometheus text exposition.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recommendations": {
+      "get": {
+        "summary": "List recommendations for a user",
+        "security": [
+          {
+            "RecommendationToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "auto",
+                "user_requested"
+              ],
+              "default": "all"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items",
+                    "total",
+                    "offset",
+                    "limit"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Recommendation"
+                      }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "offset": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 100
+                    }
+                  }
+                },
+                "example": {
+                  "items": [],
+                  "total": 0,
+                  "offset": 0,
+                  "limit": 25
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid/missing token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "403": {
+            "description": "Cross-site request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint disabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Database unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          }
+        },
+        "description": "Score descending (null last), then creation time descending and ID. Sources are independent; the same movie can exist in both.",
+        "tags": [
+          "Recommendations"
+        ]
+      },
+      "post": {
+        "summary": "Create or update a recommendation by user, movie and source.",
+        "description": "Stable record per user/movie. Agent supplies resolved UUIDs. Omitted score becomes null.",
+        "security": [
+          {
+            "RecommendationToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecommendationInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "recommendation"
+                  ],
+                  "properties": {
+                    "recommendation": {
+                      "$ref": "#/components/schemas/Recommendation"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid/missing token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "403": {
+            "description": "Cross-site request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint disabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Database unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large (Flask HTML response).",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Recommendations"
+        ]
+      }
+    },
+    "/admin/reset-recommendation-db": {
+      "post": {
+        "summary": "Clear recommendation data",
+        "security": [
+          {
+            "ResetToken": []
+          }
+        ],
+        "description": "Clears results and legacy recommendation_requests rows if that retired table exists. Requires enabled reset and separate reset token.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "table"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "table": {
+                    "type": "string",
+                    "enum": [
+                      "all",
+                      "recommendations"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "cleared_tables",
+                    "deleted_rows"
+                  ],
+                  "properties": {
+                    "cleared_tables": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "deleted_rows": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "cleared_tables": [
+                    "recommendations"
+                  ],
+                  "deleted_rows": {
+                    "recommendations": 0
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid/missing token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "403": {
+            "description": "Cross-site request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint disabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Database unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large (Flask HTML response).",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Administration"
+        ]
+      }
+    },
+    "/recommendation-filters": {
+      "get": {
+        "summary": "Get genre/language choices and filter limits.",
+        "security": [
+          {
+            "RecommendationToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilterOptions"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "403": {
+            "description": "Cross-site request rejected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable; retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "404": {
+            "description": "API token not configured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "description": "Actors/directors are free-text names, not catalog option lists. Language values remain codes; clients may display full names. Generation is not connected.",
+        "tags": [
+          "Recommendations"
+        ]
+      }
+    },
+    "/context/users": {
+      "get": {
+        "tags": [
+          "Context API"
+        ],
+        "summary": "List user IDs for background recommendations.",
+        "security": [
+          {
+            "RecommendationToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Example uses limit=2. Null cursor/offset means no next page.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "user_ids",
+                    "next_cursor"
+                  ],
+                  "properties": {
+                    "user_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "format": "uuid"
+                      }
+                    },
+                    "next_cursor": {
+                      "type": "string",
+                      "format": "uuid",
+                      "nullable": true
+                    }
+                  }
+                },
+                "examples": {
+                  "populated": {
+                    "summary": "Example page (limit=2)",
+                    "value": {
+                      "user_ids": [
+                        "11111111-1111-4111-8111-111111111111",
+                        "22222222-2222-4222-8222-222222222222"
+                      ],
+                      "next_cursor": "22222222-2222-4222-8222-222222222222"
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid UUID or pagination.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Use an after UUID and limit 1\u20131000."
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "401": {
+            "description": "A valid service token is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "A valid service token is required."
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "403": {
+            "description": "Cross-site requests are not allowed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Cross-site requests are not allowed."
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint disabled or user not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Endpoint is disabled."
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "User context unavailable. Please retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "User context unavailable. Please retry."
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/context/users/{user_id}": {
+      "get": {
+        "tags": [
+          "Context API"
+        ],
+        "summary": "Get watched history and watchlist with recency timestamps.",
+        "security": [
+          {
+            "RecommendationToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 100
+            }
+          },
+          {
+            "name": "watched_offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000,
+              "default": 0
+            }
+          },
+          {
+            "name": "watchlist_offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Example uses limit=2. Null cursor/offset means no next page.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "user_id",
+                    "as_of",
+                    "watched",
+                    "watchlist"
+                  ],
+                  "properties": {
+                    "user_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "as_of": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "watched": {
+                      "type": "object",
+                      "required": [
+                        "items",
+                        "total",
+                        "offset",
+                        "limit",
+                        "next_offset"
+                      ],
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "movie_id",
+                              "watched_at",
+                              "recorded_at"
+                            ],
+                            "properties": {
+                              "movie_id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "watched_at": {
+                                "type": "string",
+                                "format": "date-time",
+                                "nullable": true
+                              },
+                              "recorded_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 1000
+                        },
+                        "next_offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "nullable": true
+                        }
+                      }
+                    },
+                    "watchlist": {
+                      "type": "object",
+                      "required": [
+                        "items",
+                        "total",
+                        "offset",
+                        "limit",
+                        "next_offset"
+                      ],
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "movie_id",
+                              "added_at"
+                            ],
+                            "properties": {
+                              "movie_id": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "added_at": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 1000
+                        },
+                        "next_offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "nullable": true
+                        }
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "populated": {
+                    "summary": "Example page (limit=2)",
+                    "value": {
+                      "user_id": "11111111-1111-4111-8111-111111111111",
+                      "as_of": "2026-10-09T16:00:00+00:00",
+                      "watched": {
+                        "items": [
+                          {
+                            "movie_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                            "watched_at": "2026-10-08T20:30:00+00:00",
+                            "recorded_at": "2026-10-08T20:35:00+00:00"
+                          },
+                          {
+                            "movie_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                            "watched_at": null,
+                            "recorded_at": "2026-10-01T10:00:00+00:00"
+                          }
+                        ],
+                        "total": 3,
+                        "offset": 0,
+                        "limit": 2,
+                        "next_offset": 2
+                      },
+                      "watchlist": {
+                        "items": [
+                          {
+                            "movie_id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+                            "added_at": "2026-10-09T12:00:00+00:00"
+                          }
+                        ],
+                        "total": 1,
+                        "offset": 0,
+                        "limit": 2,
+                        "next_offset": null
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid UUID or pagination.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Use a user UUID, offsets 0\u20131000000 and limit 1\u20131000."
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "401": {
+            "description": "A valid service token is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "A valid service token is required."
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "403": {
+            "description": "Cross-site requests are not allowed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "Cross-site requests are not allowed."
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint disabled or user not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "examples": {
+                  "missing_user": {
+                    "value": {
+                      "error": "User not found."
+                    }
+                  },
+                  "disabled": {
+                    "value": {
+                      "error": "Endpoint is disabled."
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "User context unavailable. Please retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "example": {
+                  "error": "User context unavailable. Please retry."
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recommendations/{recommendation_id}": {
+      "delete": {
+        "summary": "Remove one recommendation (idempotent)",
+        "security": [
+          {
+            "RecommendationToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "recommendation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "removed"
+                  ],
+                  "properties": {
+                    "removed": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "example": {
+                  "removed": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid/missing token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "403": {
+            "description": "Cross-site request rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "404": {
+            "description": "Endpoint disabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Database unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          }
+        },
+        "tags": [
+          "Recommendations"
+        ]
+      }
+    },
+    "/context/recommendation-requests": {
+      "post": {
+        "summary": "Validate and return filters only; no persistence, dispatch or generation.",
+        "security": [
+          {
+            "RecommendationToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "filters",
+                  "user_id"
+                ],
+                "properties": {
+                  "filters": {
+                    "$ref": "#/components/schemas/RecommendationFilters"
+                  },
+                  "user_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "description": "Invalid filters or identifiers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "403": {
+            "description": "Cross-site request rejected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable; retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "no-store"
+              }
+            }
+          },
+          "200": {
+            "description": "Filters validated and normalized. No DB write, queue or agent call.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "user_id",
+                    "source",
+                    "filters",
+                    "generation_available"
+                  ],
+                  "properties": {
+                    "user_id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "user_requested"
+                      ]
+                    },
+                    "filters": {
+                      "$ref": "#/components/schemas/RecommendationFilters"
+                    },
+                    "generation_available": {
+                      "type": "boolean",
+                      "enum": [
+                        false
+                      ]
+                    }
+                  }
+                },
+                "example": {
+                  "user_id": "11111111-1111-4111-8111-111111111111",
+                  "source": "user_requested",
+                  "filters": {
+                    "genres": [
+                      "Drama"
+                    ],
+                    "languages": [
+                      "en"
+                    ],
+                    "actors": [],
+                    "directors": [],
+                    "year_from": null,
+                    "year_to": null,
+                    "duration": "any",
+                    "count": 10
+                  },
+                  "generation_available": false
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large (Flask HTML response).",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API token not configured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Context API"
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Health": {
+        "type": "object",
+        "properties": {
+          "service": {
+            "type": "string",
+            "enum": [
+              "recommendation-service"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "unavailable"
+            ]
+          },
+          "database": {
+            "type": "string",
+            "enum": [
+              "up",
+              "down"
+            ]
+          }
+        },
+        "required": [
+          "service",
+          "status",
+          "database"
+        ]
+      },
+      "RecommendationInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "user_id",
+          "movie_id",
+          "reason",
+          "source"
+        ],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "movie_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000
+          },
+          "score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "user_requested"
+            ]
+          }
+        }
+      },
+      "Recommendation": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "movie_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000
+          },
+          "score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "nullable": true
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "user_requested"
+            ]
+          }
+        },
+        "required": [
+          "source"
+        ]
+      },
+      "RecommendationFilters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "genres": {
+            "type": "array",
+            "maxItems": 10,
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "description": "Values from current catalog filter choices."
+          },
+          "languages": {
+            "type": "array",
+            "maxItems": 10,
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "description": "Values from current catalog filter choices."
+          },
+          "actors": {
+            "type": "array",
+            "maxItems": 10,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "default": [],
+            "description": "Free-text names; trim, deduplicate case-insensitively; reject control characters. No catalog membership requirement."
+          },
+          "directors": {
+            "type": "array",
+            "maxItems": 10,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "default": [],
+            "description": "Free-text names; trim, deduplicate case-insensitively; reject control characters. No catalog membership requirement."
+          },
+          "year_from": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1888,
+            "description": "Upper bound is current year + 5; from must not exceed to."
+          },
+          "year_to": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1888,
+            "description": "Upper bound is current year + 5; from must not exceed to."
+          },
+          "duration": {
+            "type": "string",
+            "enum": [
+              "any",
+              "short",
+              "medium",
+              "long",
+              "epic"
+            ],
+            "default": "any"
+          },
+          "count": {
+            "type": "integer",
+            "enum": [
+              5,
+              10,
+              15,
+              20
+            ],
+            "default": 10
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "FilterOptions": {
+        "type": "object",
+        "required": [
+          "version",
+          "choices",
+          "durations",
+          "year_min",
+          "year_max",
+          "counts",
+          "max_selections",
+          "generation_available"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "choices": {
+            "type": "object",
+            "required": [
+              "genres",
+              "languages"
+            ],
+            "properties": {
+              "genres": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "languages": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "durations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "label",
+                "min",
+                "max"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "min": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "nullable": true
+                },
+                "max": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "year_min": {
+            "type": "integer"
+          },
+          "year_max": {
+            "type": "integer"
+          },
+          "counts": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "enum": [
+                5,
+                10,
+                15,
+                20
+              ]
+            }
+          },
+          "max_selections": {
+            "type": "integer"
+          },
+          "generation_available": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "RecommendationToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "RECOMMENDATION_API_TOKEN; trusted server clients only."
+      },
+      "ResetToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Separate RECOMMENDATION_RESET_TOKEN."
+      }
+    }
+  }
+}

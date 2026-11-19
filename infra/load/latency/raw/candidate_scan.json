@@ -1,0 +1,81 @@
+{
+ "broad_eligible": 4995,
+ "catalogue_size": 5000,
+ "narrow_options": [
+  {
+   "eligible": 11,
+   "filters": {
+    "duration": "epic",
+    "genres": [
+     "Action"
+    ]
+   }
+  },
+  {
+   "eligible": 13,
+   "filters": {
+    "duration": "epic",
+    "genres": [
+     "Adventure"
+    ]
+   }
+  },
+  {
+   "eligible": 13,
+   "filters": {
+    "duration": "long",
+    "genres": [
+     "Documentary"
+    ]
+   }
+  },
+  {
+   "eligible": 11,
+   "filters": {
+    "duration": "long",
+    "genres": [
+     "TV Movie"
+    ]
+   }
+  },
+  {
+   "eligible": 10,
+   "filters": {
+    "duration": "epic",
+    "genres": [
+     "War"
+    ]
+   }
+  },
+  {
+   "eligible": 9,
+   "filters": {
+    "duration": "epic",
+    "genres": [
+     "Crime"
+    ]
+   }
+  },
+  {
+   "eligible": 15,
+   "filters": {
+    "duration": "short",
+    "genres": [
+     "History"
+    ]
+   }
+  },
+  {
+   "eligible": 15,
+   "filters": {
+    "duration": "short",
+    "genres": [
+     "War"
+    ]
+   }
+  }
+ ],
+ "pool_size_20": 40,
+ "pool_size_5": 30,
+ "watched_excluded": 5
+}

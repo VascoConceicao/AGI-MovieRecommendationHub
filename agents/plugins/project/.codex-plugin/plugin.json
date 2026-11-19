@@ -1,0 +1,18 @@
+{
+  "name": "project",
+  "version": "0.2.0",
+  "description": "Project-specific skills for the g15 application.",
+  "author": {
+    "name": "g15"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Project",
+    "shortDescription": "Project API docs and test skills.",
+    "longDescription": "Maintain Swagger docs, run project tests, and create tests from coverage gaps.",
+    "developerName": "g15",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Use run-tests, create-tests, or swagger for this project."
+  }
+}

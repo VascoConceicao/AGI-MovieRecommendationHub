@@ -1,0 +1,41 @@
+<section aria-labelledby="search-title">
+  <div class="search-heading"><h1 id="search-title">Search</h1>@if (hasSearchItems() || query().length > 0) { <input #searchInput type="search" aria-label="Search movies and users" placeholder="Search movies and users" maxlength="200" [value]="query()" (input)="search(searchInput.value)" /> }</div>
+  <div class="source-filter" role="group" aria-label="Search type">
+    @for (item of filters; track item.value) { <button type="button" [attr.aria-pressed]="filter() === item.value" (click)="navigate(item.value)">{{ item.label }}</button> }
+  </div>
+  @if (loading()) { <p role="status">Searching…</p> }
+  <div [attr.aria-busy]="loading()">
+    @if (filter() !== 'users') {
+      <section aria-labelledby="movie-results-title" class="result-section">
+        <h2 id="movie-results-title">Movies</h2>
+        @if (movieError()) { <p role="alert">{{ movieError() }} <button class="secondary-button" type="button" (click)="retry()">Retry</button></p> }
+        @if (movies(); as result) {
+          @if (!result.movies.length) { <p>No movies found.</p> }
+          <app-movie-results [movies]="result.movies" />
+          @if (result.total > 25 || result.offset > 0) {
+            <nav class="pagination" aria-label="Movie search pages"><button class="secondary-button" type="button" [disabled]="result.offset === 0" (click)="navigate(filter(), 'movies', result.offset - 25)">Previous</button><span>{{ page(result.offset) }} / {{ pages(result.total) }}</span><button class="secondary-button" type="button" [disabled]="result.offset + 25 >= result.total" (click)="navigate(filter(), 'movies', result.offset + 25)">Next</button></nav>
+          }
+        }
+      </section>
+    }
+    @if (filter() !== 'movies') {
+      <section aria-labelledby="user-results-title" class="result-section">
+        <h2 id="user-results-title">Users</h2>
+        @if (userError()) { <p role="alert">{{ userError() }} <button class="secondary-button" type="button" (click)="retry()">Retry</button></p> }
+        @if (users(); as result) {
+          @if (!result.users.length) { <p>No users found.</p> }
+          <div #userGrid class="user-grid">
+            @for (user of result.users; track user.id) {
+              <a class="user-card" [routerLink]="['/home/search/users', user.id]" [queryParams]="{ q: query(), type: filter() }">
+                <img [src]="'/assets/avatars/avatar-' + user.avatar_id + '.svg'" alt="" width="56" height="56" /><span><strong>{{ user.display_name }}</strong><small>&#64;{{ user.username }}</small></span>
+              </a>
+            }
+          </div>
+          @if (result.total > result.limit || result.offset > 0) {
+            <nav class="pagination" aria-label="User search pages"><button class="secondary-button" type="button" [disabled]="result.offset === 0" (click)="navigate(filter(), 'users', result.offset - result.limit)">Previous</button><span>{{ page(result.offset, result.limit) }} / {{ pages(result.total, result.limit) }}</span><button class="secondary-button" type="button" [disabled]="result.offset + result.limit >= result.total" (click)="navigate(filter(), 'users', result.offset + result.limit)">Next</button></nav>
+          }
+        }
+      </section>
+    }
+  </div>
+</section>

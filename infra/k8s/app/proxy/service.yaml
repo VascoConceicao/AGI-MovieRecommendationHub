@@ -1,0 +1,17 @@
+# Application entrypoint Service (ClusterIP): external traffic lands on the
+# ingress-nginx controller (:30080) and routes through the proxy Ingress
+# (proxy/ingress.yaml) to this Service. The proxy must NOT claim NodePort
+# 30080 itself: that port belongs to the ingress controller Service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: proxy
+  labels:
+    app.kubernetes.io/part-of: g15
+spec:
+  type: ClusterIP
+  selector:
+    app: proxy
+  ports:
+    - port: 80
+      targetPort: 80

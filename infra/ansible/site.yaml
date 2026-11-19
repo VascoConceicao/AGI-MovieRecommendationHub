@@ -1,0 +1,285 @@
+---
+- name: Prepare Kubernetes nodes
+  hosts: kubernetes
+  become: true
+
+  vars:
+    kubernetes_minor_version: "1.36"
+
+  handlers:
+    - name: Restart containerd
+      ansible.builtin.systemd:
+        name: containerd
+        state: restarted
+
+  tasks:
+    - name: Disable swap immediately
+      ansible.builtin.command:
+        cmd: swapoff -a
+      changed_when: false
+
+    - name: Disable swap in fstab
+      ansible.builtin.replace:
+        path: /etc/fstab
+        regexp: '^(\s*[^#]\S+\s+\S+\s+swap\s+\S+\s+.*)$'
+        replace: '# \1'
+
+    - name: Load overlay kernel module
+      community.general.modprobe:
+        name: overlay
+        state: present
+
+    - name: Load br_netfilter kernel module
+      community.general.modprobe:
+        name: br_netfilter
+        state: present
+
+    - name: Configure Kubernetes networking sysctl parameters
+      ansible.builtin.copy:
+        dest: /etc/sysctl.d/99-kubernetes-cri.conf
+        mode: '0644'
+        content: |
+          net.bridge.bridge-nf-call-iptables = 1
+          net.bridge.bridge-nf-call-ip6tables = 1
+          net.ipv4.ip_forward = 1
+
+    - name: Apply sysctl configuration
+      ansible.builtin.command:
+        cmd: sysctl --system
+      changed_when: false
+
+    - name: Install containerd
+      ansible.builtin.apt:
+        name: containerd
+        state: present
+        update_cache: true
+
+    - name: Create containerd configuration directory
+      ansible.builtin.file:
+        path: /etc/containerd
+        state: directory
+        mode: '0755'
+
+    - name: Generate containerd configuration
+      ansible.builtin.shell:
+        cmd: containerd config default > /etc/containerd/config.toml
+        creates: /etc/containerd/config.toml
+      notify: Restart containerd
+
+    - name: Configure containerd to use systemd cgroups
+      ansible.builtin.replace:
+        path: /etc/containerd/config.toml
+        regexp: 'SystemdCgroup = false'
+        replace: 'SystemdCgroup = true'
+      notify: Restart containerd
+
+    - name: Enable and start containerd
+      ansible.builtin.systemd:
+        name: containerd
+        enabled: true
+        state: started
+
+    - name: Apply containerd configuration before Kubernetes bootstrap
+      ansible.builtin.meta: flush_handlers
+
+    - name: Install Kubernetes APT prerequisites
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - gpg
+        state: present
+        update_cache: true
+
+    - name: Create Kubernetes APT keyring directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Download Kubernetes repository signing key
+      ansible.builtin.get_url:
+        url: "https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_minor_version }}/deb/Release.key"
+        dest: /etc/apt/keyrings/kubernetes-apt-keyring.asc
+        mode: '0644'
+
+    - name: Convert Kubernetes repository signing key to GPG keyring
+      ansible.builtin.command:
+        cmd: >
+          gpg --dearmor
+          --output /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+          /etc/apt/keyrings/kubernetes-apt-keyring.asc
+        creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+      
+
+    - name: Configure Kubernetes APT repository
+      ansible.builtin.deb822_repository:
+        name: kubernetes
+        types: deb
+        uris:
+          - "https://pkgs.k8s.io/core:/stable:/v{{ kubernetes_minor_version }}/deb/"
+        suites:
+          - /
+        signed_by: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+        state: present
+        enabled: true
+
+    - name: Install Kubernetes packages
+      ansible.builtin.apt:
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: present
+        update_cache: true
+
+    - name: Hold Kubernetes packages
+      ansible.builtin.dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - kubelet
+        - kubeadm
+        - kubectl
+
+    - name: Enable kubelet
+      ansible.builtin.systemd:
+        name: kubelet
+        enabled: true
+        state: started
+
+- name: Bootstrap Kubernetes cluster
+  hosts: kubernetes
+  become: true
+
+  vars:
+    pod_network_cidr: "10.244.0.0/16"
+    calico_version: "v3.32.2"
+    calico_manifest_url: "https://raw.githubusercontent.com/projectcalico/calico/{{ calico_version }}/manifests/calico.yaml"
+    control_plane_host: "{{ groups['control_plane'][0] }}"
+    # Address the API server advertises for node-to-node traffic.
+    # Defaults to the Ansible connection address (correct for local VMs);
+    # GCE inventories override it with the control-plane internal IP so
+    # cluster traffic stays on the VPC while the operator uses the
+    # external address.
+    apiserver_advertise_address: "{{ ansible_host }}"
+    # Where the fetched admin kubeconfig lands on the operator machine.
+    kubeconfig_output: "{{ playbook_dir }}/../terraform/cluster/kubeconfig.out"
+
+  tasks:
+    - name: Initialize Kubernetes control plane
+      ansible.builtin.command:
+        cmd: >
+          kubeadm init
+          --node-name={{ inventory_hostname }}
+          --pod-network-cidr={{ pod_network_cidr }}
+          --apiserver-advertise-address={{ apiserver_advertise_address }}
+          --apiserver-cert-extra-sans={{ hostvars[control_plane_host].ansible_host }}
+        creates: /etc/kubernetes/admin.conf
+      when: inventory_hostname == control_plane_host
+
+    - name: Ensure operator address in API server certificate
+      ansible.builtin.shell:
+        cmd: |
+          set -eu
+          EXT="{{ hostvars[control_plane_host].ansible_host }}"
+          if openssl x509 -in /etc/kubernetes/pki/apiserver.crt -noout -ext subjectAltName | grep -q "$EXT"; then
+            echo "SAN present"
+          else
+            rm -f /etc/kubernetes/pki/apiserver.crt /etc/kubernetes/pki/apiserver.key
+            kubeadm init phase certs apiserver --apiserver-cert-extra-sans="$EXT"
+            echo "REGENERATED"
+          fi
+        executable: /bin/bash
+      register: apiserver_cert
+      changed_when: '"REGENERATED" in apiserver_cert.stdout'
+      when:
+        - inventory_hostname == control_plane_host
+        - apiserver_advertise_address != hostvars[control_plane_host].ansible_host
+
+    - name: Restart API server if serving a stale certificate
+      ansible.builtin.shell:
+        cmd: |
+          set -eu
+          CERT_MTIME=$(stat -c %Y /etc/kubernetes/pki/apiserver.crt)
+          POD_START=$(kubectl --kubeconfig=/etc/kubernetes/admin.conf -n kube-system get pod -l component=kube-apiserver -o jsonpath='{.items[0].status.startTime}')
+          POD_EPOCH=$(date -d "$POD_START" +%s)
+          if [ "$POD_EPOCH" -lt "$CERT_MTIME" ]; then
+            kubectl --kubeconfig=/etc/kubernetes/admin.conf -n kube-system delete pod -l component=kube-apiserver
+          fi
+        executable: /bin/bash
+      register: apiserver_restart
+      changed_when: '"deleted" in apiserver_restart.stdout'
+      when:
+        - inventory_hostname == control_plane_host
+        - apiserver_advertise_address != hostvars[control_plane_host].ansible_host
+
+    - name: Fetch admin kubeconfig to the host
+      ansible.builtin.fetch:
+        src: /etc/kubernetes/admin.conf
+        dest: "{{ kubeconfig_output }}"
+        flat: true
+      when: inventory_hostname == control_plane_host
+
+    - name: Point fetched kubeconfig at the operator access address
+      ansible.builtin.replace:
+        path: "{{ kubeconfig_output }}"
+        regexp: 'server: https://{{ apiserver_advertise_address | regex_escape }}:6443'
+        replace: 'server: https://{{ hostvars[control_plane_host].ansible_host }}:6443'
+      delegate_to: localhost
+      become: false
+      when:
+        - inventory_hostname == control_plane_host
+        - apiserver_advertise_address != hostvars[control_plane_host].ansible_host
+
+    - name: Download Calico manifest
+      ansible.builtin.get_url:
+        url: "{{ calico_manifest_url }}"
+        dest: "/root/calico-{{ calico_version }}.yaml"
+        mode: '0644'
+      register: calico_download
+      when: inventory_hostname == control_plane_host
+
+    - name: Stage Calico manifest for local edits
+      ansible.builtin.copy:
+        remote_src: true
+        src: "/root/calico-{{ calico_version }}.yaml"
+        dest: /root/calico.yaml
+        mode: '0644'
+      when:
+        - inventory_hostname == control_plane_host
+        - calico_download is changed
+
+    - name: Uncomment Calico IPv4 pool setting
+      ansible.builtin.replace:
+        path: /root/calico.yaml
+        regexp: '# - name: CALICO_IPV4POOL_CIDR'
+        replace: '- name: CALICO_IPV4POOL_CIDR'
+      when: inventory_hostname == control_plane_host
+
+    - name: Set Calico IPv4 pool to the pod CIDR
+      ansible.builtin.replace:
+        path: /root/calico.yaml
+        regexp: '#   value: "192\.168\.0\.0/16"'
+        replace: '  value: "{{ pod_network_cidr }}"'
+      when: inventory_hostname == control_plane_host
+
+    - name: Install Calico CNI
+      ansible.builtin.command:
+        cmd: kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f /root/calico.yaml
+      register: calico_apply
+      changed_when: '"created" in calico_apply.stdout or "configured" in calico_apply.stdout'
+      when: inventory_hostname == control_plane_host
+
+    - name: Generate worker join command
+      ansible.builtin.command:
+        cmd: kubeadm token create --print-join-command
+      register: join_command_raw
+      changed_when: false
+      when: inventory_hostname == control_plane_host
+
+    - name: Join workers to the cluster
+      ansible.builtin.shell:
+        cmd: "{{ hostvars[control_plane_host].join_command_raw.stdout }} --node-name={{ inventory_hostname }}"
+        creates: /etc/kubernetes/kubelet.conf
+      when: inventory_hostname in groups['workers']

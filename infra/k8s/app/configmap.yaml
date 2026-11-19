@@ -1,0 +1,19 @@
+# Non-sensitive application configuration. Secrets (passwords) live in
+# the g15-db-passwords Secret generated from db-passwords.env.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: g15-app-config
+data:
+  MOVIE_DB_HOST: "movie-db"
+  MOVIE_DB_PORT: "5432"
+  MOVIE_DB_USER: "movie"
+  MOVIE_DB_NAME: "movie"
+  RECOMMENDATION_DB_HOST: "recommendation-db"
+  RECOMMENDATION_DB_PORT: "5432"
+  RECOMMENDATION_DB_USER: "recommendation"
+  RECOMMENDATION_DB_NAME: "recommendation"
+  USER_DB_HOST: "user-db"
+  USER_DB_PORT: "5432"
+  USER_DB_USER: "users"
+  USER_DB_NAME: "users"

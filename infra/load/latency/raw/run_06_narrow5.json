@@ -1,0 +1,133 @@
+{
+ "api_completion_s_poll_1s": 3.89,
+ "candidate_pool_sent_to_llm": 11,
+ "case": "narrow5",
+ "cgroup_after": {
+  "nr_periods": 61003,
+  "nr_throttled": 1368,
+  "system_usec": 19662053,
+  "throttled_usec": 23401781,
+  "usage_usec": 295107284,
+  "user_usec": 275445231
+ },
+ "cgroup_after_at": "2026-10-19T17:54:33.580+00:00",
+ "cgroup_before": {
+  "nr_periods": 60984,
+  "nr_throttled": 1360,
+  "system_usec": 19621578,
+  "throttled_usec": 23366481,
+  "usage_usec": 292906029,
+  "user_usec": 273284450
+ },
+ "cgroup_before_at": "2026-10-19T17:54:28.767+00:00",
+ "cgroup_delta": {
+  "nr_periods": 19,
+  "nr_throttled": 8,
+  "system_usec": 40475,
+  "throttled_usec": 35300,
+  "usage_usec": 2201255,
+  "user_usec": 2160781
+ },
+ "criteria_sent": {
+  "count": 5,
+  "duration": "epic",
+  "genres": [
+   "Action"
+  ]
+ },
+ "eligible_candidates": 11,
+ "final_status_body_keys": [
+  "attempts",
+  "created_at",
+  "duration_seconds",
+  "fallback_reason",
+  "finished_at",
+  "job_id",
+  "outcome",
+  "recommendation_count",
+  "requested_count",
+  "source",
+  "started_at",
+  "status",
+  "used_fallback"
+ ],
+ "job_id": "3cef6662-d47d-429e-be98-ce17e3505299",
+ "job_row": {
+  "attempts": 1,
+  "created_at": "2026-10-19T17:54:28.816Z",
+  "created_to_finished_s": 3.195,
+  "criteria": {
+   "actors": [],
+   "count": 5,
+   "directors": [],
+   "duration": "epic",
+   "genres": [
+    "Action"
+   ],
+   "languages": [],
+   "year_from": null,
+   "year_to": null
+  },
+  "fallback_reason": null,
+  "finished_at": "2026-10-19T17:54:32.011Z",
+  "job_duration_s": 3.071,
+  "outcome": "llm",
+  "queue_wait_s": 0.04,
+  "recommendation_count": 5,
+  "started_at": "2026-10-19T17:54:28.856Z",
+  "status": "succeeded",
+  "used_fallback": false
+ },
+ "llama": {
+  "f_keep": 0.114,
+  "f_sim_best": 0.249,
+  "gen_ms": 1358.24,
+  "gen_tok_per_s": 9.57,
+  "generated_tokens": 14,
+  "llama_total_ms": 1472.46,
+  "llama_total_tokens": 15,
+  "n_tokens_at_release": 1059,
+  "prompt_eval_ms": 114.22,
+  "prompt_tok_per_s": 8.76,
+  "prompt_tokens_cached_reused": 1045,
+  "prompt_tokens_processed": 1,
+  "prompt_tokens_total": 1046,
+  "slot_selection": "LCP",
+  "truncated": 0
+ },
+ "llama_log_lines_before": 76,
+ "llama_log_slice": [
+  "5617.24.334.463 I slot get_availabl: id  0 | task -1 | selected slot by LCP similarity, f_sim_best = 0.249 (> 0.100 thold), f_keep = 0.114",
+  "5617.24.359.302 I slot launch_slot_: id  0 | task 123 | processing task, is_child = 0",
+  "5617.24.359.366 W slot   operator(): id  0 | task 123 | need to evaluate at least 1 token for each active slot (n_past = 1046, task.n_tokens() = 1046)",
+  "5617.24.359.367 W slot   operator(): id  0 | task 123 | n_past was set to 1045",
+  "5617.25.831.845 I slot print_timing: id  0 | task 123 | prompt eval time =     114.22 ms /     1 tokens (  114.22 ms per token,     8.76 tokens per second)",
+  "5617.25.831.861 I slot print_timing: id  0 | task 123 |        eval time =    1358.24 ms /    14 tokens (  104.48 ms per token,     9.57 tokens per second)",
+  "5617.25.831.863 I slot print_timing: id  0 | task 123 |       total time =    1472.46 ms /    15 tokens",
+  "5617.25.831.865 I slot print_timing: id  0 | task 123 |    graphs reused =        114",
+  "5617.25.837.790 I slot      release: id  0 | task 123 | stop processing: n_tokens = 1059, truncated = 0"
+ ],
+ "poll_count": 4,
+ "poll_trace_first_last": [
+  [
+   0.41,
+   "running"
+  ],
+  [
+   3.89,
+   "succeeded"
+  ]
+ ],
+ "post_return_s": 0.202,
+ "post_sent_at": "2026-10-19T17:54:28.767+00:00",
+ "post_status": 202,
+ "queued_or_running_before": "0",
+ "rec_logs_since": "2026-10-19T17:54:27.846+00:00",
+ "recommendation_service_warning_lines": [
+  "2026-10-19 17:54:31,973 INFO services.pipeline: Recommendations generated (user=ae8b408e, source=user_requested, requested=5, candidates=11, persisted=5, outcome=llm, attempts=1, fallback=no, llm_overlap=5, seconds=3.1)"
+ ],
+ "requested_count": 5,
+ "returned_items_api": 5,
+ "run": 6,
+ "window_phase_s": 25.2
+}

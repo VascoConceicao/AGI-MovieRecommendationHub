@@ -1,0 +1,75 @@
+{
+  "base": "http://34.175.251.169:30080",
+  "elapsed_s": 309.5,
+  "total_requests": 24671,
+  "stages": [
+    {
+      "stage": 0,
+      "vus": 50,
+      "duration_s": 60,
+      "requests": 3206,
+      "rps": 53.4,
+      "ok_2xx": 3151,
+      "ok_rate": 0.9828,
+      "timeouts": 40,
+      "by_status": {
+        "200": 3151,
+        "502": 15,
+        "timeout": 40
+      },
+      "p50_ms": 133.3,
+      "p95_ms": 1657.4,
+      "mean_ms": 746.5
+    },
+    {
+      "stage": 1,
+      "vus": 100,
+      "duration_s": 120,
+      "requests": 6560,
+      "rps": 54.7,
+      "ok_2xx": 6334,
+      "ok_rate": 0.9655,
+      "timeouts": 175,
+      "by_status": {
+        "200": 6334,
+        "502": 51,
+        "timeout": 175
+      },
+      "p50_ms": 164.6,
+      "p95_ms": 4049.7,
+      "mean_ms": 1654.2
+    },
+    {
+      "stage": 2,
+      "vus": 200,
+      "duration_s": 90,
+      "requests": 14905,
+      "rps": 165.6,
+      "ok_2xx": 1927,
+      "ok_rate": 0.1293,
+      "timeouts": 862,
+      "by_status": {
+        "200": 1927,
+        "502": 12116,
+        "timeout": 862
+      },
+      "p50_ms": 364.1,
+      "p95_ms": 10021.8,
+      "mean_ms": 1024.9
+    },
+    {
+      "stage": 3,
+      "vus": 0,
+      "duration_s": 30,
+      "requests": 0,
+      "rps": 0.0,
+      "ok_2xx": 0,
+      "ok_rate": null,
+      "timeouts": 0,
+      "by_status": {},
+      "p50_ms": null,
+      "p95_ms": null,
+      "mean_ms": null
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+# Scrapes /metrics from the three Flask backends. Only Services with an
+# "http" port produce targets, so frontend/proxy/databases (unnamed ports)
+# are silently skipped. The release label matches the
+# kube-prometheus-stack default serviceMonitorSelector.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: g15-backend
+  namespace: g15-monitoring
+  labels:
+    app.kubernetes.io/part-of: g15
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - g15-app
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: g15
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s

@@ -1,0 +1,15 @@
+# Cluster bootstrap configuration, rendered per environment.
+# Declares the pod subnet and every API server SAN up front so no
+# post-init certificate surgery is ever needed. The external operator
+# address is an extra SAN only where it differs from the advertise
+# address (GCE); locally the list collapses to one entry.
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: ClusterConfiguration
+networking:
+  podSubnet: {{ pod_network_cidr }}
+apiServer:
+  certSANs:
+    - {{ apiserver_advertise_address }}
+{% if apiserver_advertise_address != hostvars[control_plane_host].ansible_host %}
+    - {{ hostvars[control_plane_host].ansible_host }}
+{% endif %}

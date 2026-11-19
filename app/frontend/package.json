@@ -1,0 +1,31 @@
+{
+  "name": "g15-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=24.0.0 <25"
+  },
+  "scripts": {
+    "build": "ng build",
+    "start": "ng serve --configuration local --host 127.0.0.1 --port 4204",
+    "test": "sh scripts/testing/run-tests.sh"
+  },
+  "dependencies": {
+    "@angular/common": "21.2.23",
+    "@angular/compiler": "21.2.23",
+    "@angular/core": "21.2.23",
+    "@angular/platform-browser": "21.2.23",
+    "@angular/router": "21.2.23",
+    "rxjs": "~7.8.2",
+    "tslib": "^2.8.1"
+  },
+  "devDependencies": {
+    "@angular/build": "21.2.24",
+    "@angular/cli": "21.2.24",
+    "@angular/compiler-cli": "21.2.23",
+    "@vitest/coverage-v8": "4.1.11",
+    "jsdom": "30.1.2",
+    "typescript": "~5.9.3",
+    "vitest": "4.1.11"
+  }
+}

@@ -1,0 +1,547 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "run: databases",
+      "dependsOrder": "parallel",
+      "dependsOn": [
+        "run: db-movie",
+        "run: db-recommendation",
+        "run: db-user"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "run: db-movie",
+      "type": "process",
+      "command": "sh",
+      "args": [
+        "${workspaceFolder}/app/backend/movie-service/scripts/database/run-db.sh"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "close": true
+      }
+    },
+    {
+      "label": "run: db-recommendation",
+      "type": "process",
+      "command": "sh",
+      "args": [
+        "${workspaceFolder}/app/backend/recommendation-service/scripts/database/run-db.sh"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "close": true
+      }
+    },
+    {
+      "label": "run: db-user",
+      "type": "process",
+      "command": "sh",
+      "args": [
+        "${workspaceFolder}/app/backend/user-service/scripts/database/run-db.sh"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "close": true
+      }
+    },
+    {
+      "label": "run: service-movie",
+      "type": "process",
+      "command": "python3",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "g15-movie-service",
+        "pattern": {
+          "regexp": "^(.*):(\\d+): (.*)$",
+          "file": 1,
+          "line": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Serving Flask app",
+          "endsPattern": "Running on http://127\\.0\\.0\\.1:4206"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "dependsOn": [
+        "run: db-movie"
+      ],
+      "args": [
+        "${workspaceFolder}/scripts/development/manage-component.py",
+        "run",
+        "movie"
+      ],
+      "runOptions": {
+        "instanceLimit": 2
+      }
+    },
+    {
+      "label": "run: service-recommendation",
+      "type": "process",
+      "command": "python3",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "g15-recommendation-service",
+        "pattern": {
+          "regexp": "^(.*):(\\d+): (.*)$",
+          "file": 1,
+          "line": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Serving Flask app",
+          "endsPattern": "Running on http://127\\.0\\.0\\.1:4207"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "dependsOn": [
+        "run: db-recommendation"
+      ],
+      "args": [
+        "${workspaceFolder}/scripts/development/manage-component.py",
+        "run",
+        "recommendation"
+      ],
+      "runOptions": {
+        "instanceLimit": 2
+      }
+    },
+    {
+      "label": "run: service-user",
+      "type": "process",
+      "command": "python3",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "g15-user-service",
+        "pattern": {
+          "regexp": "^(.*):(\\d+): (.*)$",
+          "file": 1,
+          "line": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Serving Flask app",
+          "endsPattern": "Running on http://127\\.0\\.0\\.1:4208"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "dependsOn": [
+        "run: db-user"
+      ],
+      "args": [
+        "${workspaceFolder}/scripts/development/manage-component.py",
+        "run",
+        "user"
+      ],
+      "runOptions": {
+        "instanceLimit": 2
+      }
+    },
+    {
+      "label": "run: frontend",
+      "type": "process",
+      "command": "python3",
+      "options": {
+        "cwd": "${workspaceFolder}/app/frontend"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "g15-frontend",
+        "pattern": {
+          "regexp": "^(.*):(\\d+): (.*)$",
+          "file": 1,
+          "line": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Building",
+          "endsPattern": "Local:\\s+http://127\\.0\\.0\\.1:4204/"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "args": [
+        "${workspaceFolder}/scripts/development/manage-component.py",
+        "run",
+        "frontend"
+      ],
+      "runOptions": {
+        "instanceLimit": 2
+      }
+    },
+    {
+      "label": "run: proxy",
+      "type": "process",
+      "command": "python3",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "g15-proxy",
+        "pattern": {
+          "regexp": "^(.*):(\\d+): (.*)$",
+          "file": 1,
+          "line": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Checking local Nginx configuration",
+          "endsPattern": "start worker processes"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "args": [
+        "${workspaceFolder}/scripts/development/manage-component.py",
+        "run",
+        "proxy"
+      ],
+      "runOptions": {
+        "instanceLimit": 2
+      }
+    },
+    {
+      "label": "stop: app",
+      "type": "process",
+      "command": "sh",
+      "args": [
+        "${workspaceFolder}/scripts/development/stop-app.sh"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "close": true
+      }
+    },
+    {
+      "label": "run: services",
+      "runOptions": {
+        "instanceLimit": 2
+      },
+      "dependsOrder": "parallel",
+      "dependsOn": [
+        "run: service-movie",
+        "run: service-recommendation",
+        "run: service-user"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "run: app",
+      "runOptions": {
+        "instanceLimit": 2
+      },
+      "dependsOrder": "parallel",
+      "dependsOn": [
+        "run: service-movie",
+        "run: service-recommendation",
+        "run: service-user",
+        "run: frontend",
+        "run: proxy"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "ingest: users",
+      "type": "process",
+      "command": "sh",
+      "args": [
+        "${workspaceFolder}/app/backend/user-service/db/ingestion/users.sh",
+        "--count",
+        "${input:ingestionUserCount}",
+        "--max-watched",
+        "${input:ingestionMaxWatched}",
+        "--max-watchlist",
+        "${input:ingestionMaxWatchlist}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "dependsOn": [
+        "ensure: service-user",
+        "ensure: service-movie"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "test: all",
+      "type": "process",
+      "command": "sh",
+      "args": [
+        "${workspaceFolder}/scripts/testing/run-tests.sh"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "ingest: movies",
+      "type": "process",
+      "command": "sh",
+      "args": [
+        "${workspaceFolder}/app/backend/movie-service/db/ingestion/movies.sh",
+        "--count",
+        "${input:ingestionMovieCount}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "dependsOn": [
+        "ensure: service-movie"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "ingest: all",
+      "type": "process",
+      "command": "sh",
+      "args": [
+        "${workspaceFolder}/app/backend/common/scripts/ingestion/ingest-all.sh",
+        "${input:ingestionMovieCount}",
+        "${input:ingestionUserCount}",
+        "${input:ingestionMaxWatched}",
+        "${input:ingestionMaxWatchlist}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "dependsOn": [
+        "ensure: service-movie",
+        "ensure: service-user"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "clear: all",
+      "type": "process",
+      "command": "python3",
+      "args": [
+        "${workspaceFolder}/app/backend/common/scripts/database/clear-all.py"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "dependsOn": [
+        "ensure: service-movie",
+        "ensure: service-user",
+        "ensure: service-recommendation"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "clear: movie",
+      "type": "process",
+      "command": "python3",
+      "args": [
+        "${workspaceFolder}/app/backend/common/scripts/database/clear-all.py",
+        "movie"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "dependsOn": [
+        "ensure: service-movie",
+        "ensure: service-user"
+      ]
+    },
+    {
+      "label": "clear: user",
+      "type": "process",
+      "command": "python3",
+      "args": [
+        "${workspaceFolder}/app/backend/common/scripts/database/clear-all.py",
+        "user"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "dependsOn": [
+        "ensure: service-user"
+      ]
+    },
+    {
+      "label": "clear: recommendation",
+      "type": "process",
+      "command": "python3",
+      "args": [
+        "${workspaceFolder}/app/backend/common/scripts/database/clear-all.py",
+        "recommendation"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "dependsOn": [
+        "ensure: service-recommendation"
+      ]
+    },
+    {
+      "label": "ensure: service-movie",
+      "type": "process",
+      "command": "python3",
+      "args": [
+        "${workspaceFolder}/scripts/development/manage-component.py",
+        "ensure",
+        "movie"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "hide": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "ensure: service-user",
+      "type": "process",
+      "command": "python3",
+      "args": [
+        "${workspaceFolder}/scripts/development/manage-component.py",
+        "ensure",
+        "user"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "hide": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "ensure: service-recommendation",
+      "type": "process",
+      "command": "python3",
+      "args": [
+        "${workspaceFolder}/scripts/development/manage-component.py",
+        "ensure",
+        "recommendation"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "hide": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "dedicated"
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "ingestionUserCount",
+      "type": "promptString",
+      "description": "Number of sample users (admin is extra; reruns skip samples)",
+      "default": "1000"
+    },
+    {
+      "id": "ingestionMovieCount",
+      "type": "promptString",
+      "description": "Number of NEW movies to add (existing movies stay)",
+      "default": "100"
+    },
+    {
+      "id": "ingestionMaxWatched",
+      "type": "promptString",
+      "description": "Max watched movies per user (random 0 to max; 0 disables)",
+      "default": "10"
+    },
+    {
+      "id": "ingestionMaxWatchlist",
+      "type": "promptString",
+      "description": "Max watchlist movies per user (random 0 to max; 0 disables)",
+      "default": "10"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Tests"
+  short_description: "Create tests from coverage gaps across the project"
+  default_prompt: "Use $create-tests to reach 100% coverage across the project."

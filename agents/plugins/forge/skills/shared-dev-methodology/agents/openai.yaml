@@ -1,0 +1,4 @@
+interface:
+  display_name: "Shared Development Methodology"
+  short_description: "Load the repository workflow at conversation start"
+  default_prompt: "Use $shared-dev-methodology to initialize this coding conversation."

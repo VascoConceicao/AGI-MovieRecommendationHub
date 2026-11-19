@@ -1,0 +1,16 @@
+{
+  "name": "forge-31735840701578f5",
+  "owner": {
+    "name": "Forge"
+  },
+  "plugins": [
+    {
+      "name": "forge",
+      "source": "./agents/plugins/forge"
+    },
+    {
+      "name": "project",
+      "source": "./agents/plugins/project"
+    }
+  ]
+}

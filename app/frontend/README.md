@@ -1,0 +1,87 @@
+# Frontend
+
+Angular 21.2 frontend with login, registration, and a protected account page. The service connection screen remains at `/health`.
+
+```text
+src/
+  app/
+    assets/
+    components/
+    pages/
+    shared/
+      config/
+      constants/
+      fixtures/
+      security/
+      services/
+      types/
+      utils/
+      index.ts
+    translations/
+      assets/
+  environments/
+```
+
+`components/` contains reusable UI; `pages/` contains route views. `shared/` follows the agreed categories; `index.ts` is reserved for shared exports. Translation resources belong in `translations/assets/`.
+
+Install the locked dependencies and run the development server with:
+
+```sh
+npm ci
+npm start
+```
+
+The UI is available directly at `http://127.0.0.1:4204` and through Nginx at `http://127.0.0.1:4205`. `src/proxy.conf.json` maps same-origin API requests to the three local Flask ports. Use `npm run build` for a production build.
+
+Environment configuration lives under `src/environments/` and contains public browser configuration only. Build replacement rules select the local, development, stage, or production configuration.
+
+Generated `.angular/`, `coverage/`, `dist/`, and `node_modules/` directories are ignored by the root `.gitignore`.
+
+## Account screens
+
+- `/` redirects to `/login`.
+- `/login` signs in with email and password.
+- `/register` collects display name, email, password, and confirmation; successful registration signs the user in.
+- `/account` checks the server session before showing account details and sign-out.
+
+Both forms use native browser validation, accessible labels, loading/error feedback, and a password visibility control. Authentication uses same-origin `/api/user/auth` requests and HttpOnly session cookies. The responsive visual theme reads `src/app/assets/palette.json` into CSS variables at startup; this file is the palette source of truth.
+
+## Combined API docs
+
+Open `http://127.0.0.1:4205/api/user/docs/swagger.html`. User, Movie, and Recommendation tabs load each service's existing `swagger.json` directly. No combined spec or duplicated endpoints; updating service docs updates this viewer automatically. Swagger UI assets need internet. The shared page lives in backend `common`; it also works through the Angular development proxy on port 4204.
+
+Shared backend HTTP calls live in `src/app/shared/services/backend/backend.service.ts`: typed GET/POST, caller headers, and request timeouts (8 seconds by default). Auth defines account routes, mutation headers, 15-second login/register timeouts, and user state. Health defines health endpoints and interprets readiness responses. Domain services inject the shared service.
+
+## Profile page
+
+`/account` and `/profile` show the signed-in user's private profile, avatar picker, and paginated watched movies. Ten original SVG avatars live in `src/app/assets/avatars/`; the existing palette remains the design source. Avatar changes persist through User Service. History IDs come from User Service and movie cards from Movie Service, with loading, empty, retry, unavailable-movie, and poster fallback states. There is no mark-watched or filter UI yet.
+
+Posters are served locally. No browser request goes to an external image host. The profile credits footer was removed at user request.
+
+The Node launcher resolves the installed `.nvmrc` version with `nvm which` and sets its bin directory for this process. It preserves custom npm global prefixes and loads nvm without auto-switching, including under POSIX sh/dash.
+
+Watched history uses `/api/user/profile/events` (Server-Sent Events), with no timed history polling. Database changes trigger reloads after commit; reconnecting resyncs missed changes. Events received during an active request queue another reload. The stream closes on navigation.
+
+Profile watch time sums the full watched history and displays days plus remaining minutes; zero days are omitted. Unknown totals display an em dash. Live history events update both the count and watch time.
+
+`/credits` provides TMDB attribution with its official logo served from local assets. Linked from sign-in/register pages.
+
+Home app shell: `pages/home/`, route `/home` (defaults to `/home/profile`). Tab content belongs in `components/tabs/`; Profile is the first tab. Shared tab UI belongs in `components/common/`, starting with `tab-navigation`. `/account` and `/profile` redirect to the profile tab. Login/register navigate to `/home`.
+
+Profile sections: My list, Watched, Recommendations. My list shows only the user’s saved watchlist; no catalog browsing. Card actions mark watched; modal actions also add/remove watchlist. Recommendations has two tabs: Recommended for You (automatic recommendations from the background agent) and My Recommendations (user-requested, with the Generate button).
+
+Profile Recommendations has two tabs that never show the same set. **Recommended for You** (opens first) lists the automatic set (`source=auto`) generated by the background agent, loaded every time the page opens, with a friendly empty state until the agent has run; it never triggers inference and has no Generate button. **My Recommendations** lists only the user's own set (`source=user_requested`) and carries **Generate recommendations**: a filter modal (choices from the catalog via authenticated User Service endpoints) starts a real generation through `POST /api/user/profile/recommendation-generations`; the page polls `GET /api/user/profile/recommendation-generations/<job_id>` every 3 seconds (at most 6 minutes) showing queued, running, success, fallback, no-results and failure states, follows an already active job on conflict, and reloads the visible list through `GET /api/user/profile/recommendations?source=…`. Each tab has its own movie search (full set, before pagination; switching tabs clears it) and 25-per-page pagination. Cards show the reason and an ordering score (not a probability). The former All / Auto generated / User requested filters were removed because they repeated the same sets. Details and manual test steps: [Recommendation Service README](../backend/recommendation-service/README.md#frontend-integration-angular--user-service--recommendation-service).
+
+## Search and public profiles
+
+Search is at `/home/search`; the header avatar opens your profile. All / Movies / Users filters keep the query. Results stay in separate sections with no heading totals. Movie pages show 25 items; user pages fill complete grid rows, with at least 25 items. Each type fetches a batch of up to 1,000 only when its requested page needs it; the current batch is cached in memory. No infinite scroll or background full-catalog preload. Empty searches use a random seed that stays fixed while paging. Query/filter changes search the backend; retry refreshes both caches.
+
+User results open `/home/search/users/:id`: public name, username, avatar, bio, and three subtabs: Their list (default), Watched movies, Recommendations. Each loads 25 items per page, with loading/empty/error/retry states and keyboard navigation. Recommendations show stored reasons; no generation controls. Movie actions affect the signed-in viewer only. Private/unavailable profiles show an unavailable state. Own profile uses the reusable `components/common/toggle` switch to set privacy, without bottom text. Existing/new users default public.
+
+Movie result cards open local movie info with Add to my list and Mark as watched. Buttons reflect saved state: Add to my list / Remove from my list and Mark as watched / Mark as not watched. Watched movies cannot be added to My list. Status refreshes before actions become available; successful changes close the dialog. Marking watched uses the existing backend action that removes watchlist membership. Search and public history share `components/common/movie-results`.
+
+Every profile section has a movie search field: own My list / Watched / Recommendations, and public Their list / Watched movies / Recommendations. Searches cover the full section before pagination, reset to the first page when edited, and show loading/empty/error states. Public sections retain separate query text while switching tabs. Recommendation source filters keep the search query.
+
+Search fields stay hidden for empty collections. Active queries remain editable even when they return no matches.
+
+Missing or failed poster images use the bundled default poster. Own watched-movie details also offer Move to my list, which removes watched status and adds list membership atomically. New accounts receive a random default avatar; existing selections stay unchanged.

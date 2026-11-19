@@ -1,0 +1,19 @@
+# Ingress-NGINX controller: the spec's entry-point (ingress) in front of
+# the proxy Service. NodePort preserves the existing :30080 demo URL on
+# both local VMs and GCE (firewall already allows it).
+controller:
+  replicaCount: 1
+  service:
+    type: NodePort
+    nodePorts:
+      http: 30080
+      https: 30443
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  admissionWebhooks:
+    enabled: true

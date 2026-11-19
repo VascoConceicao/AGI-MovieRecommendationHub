@@ -1,0 +1,88 @@
+<nav class="recommendation-tabs" role="tablist" aria-label="Recommendation lists">
+  @for (view of views; track view.id; let i = $index) {
+    <button type="button" role="tab" [id]="'recommendations-tab-' + view.id" [attr.aria-selected]="source() === view.id" aria-controls="recommendations-panel" [attr.tabindex]="source() === view.id ? 0 : -1" (click)="selectView(view.id)" (keydown)="navigateView($event, i)">{{ view.label }}</button>
+  }
+</nav>
+
+<section id="recommendations-panel" role="tabpanel" [attr.aria-labelledby]="'recommendations-tab-' + source()">
+  <div class="section-heading">
+    <p class="section-lede">{{ currentView().lede }}</p>
+    @if (source() === 'user_requested') {
+      <button #trigger class="generate-button" type="button" aria-haspopup="dialog" [disabled]="saving() || generating()" (click)="open(filtersDialog)">{{ generating() ? 'Generating…' : 'Generate recommendations' }}</button>
+    }
+    @if (hasSearchItems() || search().length > 0) { <input #recommendationSearch class="recommendation-search" type="search" aria-label="Search recommendations" placeholder="Search movies" maxlength="200" [value]="search()" (input)="searchMovies(recommendationSearch.value)" /> }
+  </div>
+  @if (source() === 'user_requested' && generation() !== 'idle') {
+    <div class="generation-status" role="status" aria-live="polite" [attr.data-state]="generation()">
+      @if (generating()) { <span class="spinner" aria-hidden="true"></span> }
+      <p>{{ generationMessage() }}</p>
+    </div>
+  }
+  @if (listLoading()) { <p role="status">{{ search().trim() ? 'Searching recommendations…' : 'Loading recommendations…' }}</p> }
+  @if (listError()) { <p class="error" role="alert">{{ listError() }} <button class="secondary-button" type="button" (click)="loadResults(offset())">Retry</button></p> }
+  @if (!listLoading() && !listError() && !results().length) { <p class="empty-state">{{ search().trim() ? 'No movies found.' : currentView().empty }}</p> }
+  <div class="recommendation-grid" [attr.aria-busy]="listLoading()">
+    @for (item of results(); track item.id; let position = $index) {
+      <ng-container [ngTemplateOutlet]="card" [ngTemplateOutletContext]="{ $implicit: item, rank: offset() + position + 1 }" />
+    }
+  </div>
+  @if (total() > 25) { <nav class="pagination" aria-label="Recommendation pages"><button class="secondary-button" type="button" [disabled]="listLoading() || offset() === 0" (click)="loadResults(offset() - 25)">Previous</button><span>{{ page() }} / {{ pages() }}</span><button class="secondary-button" type="button" [disabled]="listLoading() || offset() + 25 >= total()" (click)="loadResults(offset() + 25)">Next</button></nav> }
+</section>
+
+<ng-template #card let-item let-rank="rank">
+  <article>
+    <button class="movie-card" type="button" (click)="showDetails(item, movieDialog)" [attr.aria-label]="'View details: ' + (item.movie?.title ?? 'Movie unavailable')" aria-haspopup="dialog">
+      @if (item.movie?.poster_url && !failedPosters().has(item.movie_id)) { <img [src]="item.movie!.poster_url" alt="" loading="lazy" (error)="posterFailed(item.movie_id)" /> } @else { <img src="/assets/default-poster.svg" alt="Poster unavailable" loading="lazy" /> }
+      <strong>{{ item.movie?.title ?? 'Movie unavailable' }}</strong>
+    </button>
+    <small>{{ sourceLabel(item.source) }}</small>
+    @if (item.score != null) { <small class="ordering" title="Only orders this list. It is not a probability or an AI confidence.">{{ rank ? '#' + rank + ' · ' : '' }}Ordering score {{ item.score.toFixed(2) }}</small> }
+    <p>{{ item.reason }}</p>
+  </article>
+</ng-template>
+<dialog #movieDialog aria-labelledby="recommended-movie-title" (click)="backdrop($event, movieDialog)">
+  <div class="dialog-heading"><h2 id="recommended-movie-title">{{ details()?.movie?.title ?? 'Movie unavailable' }}</h2><button class="secondary-button close" type="button" aria-label="Close movie details" (click)="movieDialog.close()">✕</button></div>
+  @if (details(); as item) {
+    <p>{{ sourceLabel(item.source) }}</p>
+    @if (item.movie; as movie) {
+      <p class="detail-meta">{{ movie.genres?.join(' · ') }} @if (movie.duration_minutes) { · {{ movie.duration_minutes }} min }</p>
+      <p>{{ movie.synopsis }}</p>
+    }
+    <p class="recommendation-reason">{{ item.reason }}</p>
+  }
+</dialog>
+
+<dialog #filtersDialog aria-labelledby="recommendation-filters-title" (close)="restoreFocus()" (click)="backdrop($event, filtersDialog)" (cancel)="cancel($event)">
+  <div class="dialog-heading">
+    <h2 id="recommendation-filters-title">Generate recommendations</h2>
+    <button class="secondary-button close" type="button" aria-label="Close recommendation filters" [disabled]="saving()" (click)="filtersDialog.close()" autofocus>✕</button>
+  </div>
+  @if (loading()) { <p role="status">Loading filters…</p> }
+  @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+  @if (!loading() && !options()) { <button class="secondary-button" type="button" (click)="loadOptions()">Retry</button> }
+  @if (options(); as options) {
+    <form #form (submit)="submit($event, form, filtersDialog)">
+      <fieldset [disabled]="saving()">
+        <div class="filter-grid">
+          @for (field of fields; track field.key) {
+            <app-filter-select [label]="field.label" [options]="choiceOptions()[field.key]" [values]="selected()[field.key]" [freeText]="field.key === 'actors' || field.key === 'directors'" [disabled]="saving()" [max]="options.max_selections" (changed)="select(field.key, $event)" />
+          }
+          <div class="filter-field">
+            <span>Release years</span>
+            <div class="year-range">
+              <input name="year_from" type="number" aria-label="Release year from" placeholder="From" [min]="options.year_min" [max]="options.year_max" step="1" />
+              <span aria-hidden="true">–</span>
+              <input name="year_to" type="number" aria-label="Release year to" placeholder="To" [min]="options.year_min" [max]="options.year_max" step="1" />
+            </div>
+          </div>
+          <app-filter-select label="Duration" [options]="durationOptions()" [values]="[duration()]" [multiple]="false" [disabled]="saving()" (changed)="duration.set($event[0])" />
+          <app-filter-select label="Recommendations" [options]="countOptions()" [values]="[count()]" [multiple]="false" [disabled]="saving()" (changed)="count.set($event[0])" />
+        </div>
+        <div class="form-footer">
+
+          <button class="generate-button" type="submit">{{ saving() ? 'Starting…' : 'Generate recommendations' }}</button>
+        </div>
+      </fieldset>
+    </form>
+  }
+</dialog>

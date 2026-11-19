@@ -1,0 +1,13 @@
+# Model cache (local-path, node-local like the databases): the ~0.5 GB GGUF file is downloaded once. It is only a cache, so
+# losing it (node loss, claim deleted) costs one re-download. With WaitForFirstConsumer the volume is created on the node
+# where the Pod is first scheduled and pins the Pod there afterwards.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: inference-models
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 2Gi

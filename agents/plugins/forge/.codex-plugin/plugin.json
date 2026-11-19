@@ -1,0 +1,18 @@
+{
+  "name": "forge",
+  "version": "0.1.0",
+  "description": "Shared project workflow and task skills maintained by Forge.",
+  "author": {
+    "name": "Forge"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Forge",
+    "shortDescription": "Shared project workflow and task skills.",
+    "longDescription": "Forge provides project setup, task tracking, phase implementation, skill creation, and shared development methodology.",
+    "developerName": "Forge",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Use the Forge shared development methodology for this project."
+  }
+}

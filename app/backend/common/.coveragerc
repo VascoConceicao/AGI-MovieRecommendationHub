@@ -1,0 +1,13 @@
+[run]
+branch = True
+source =
+    .
+    scripts/database
+omit =
+    tests/*
+    .venv/*
+    coverage/*
+    build/*
+
+[report]
+show_missing = True

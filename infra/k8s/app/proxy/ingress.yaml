@@ -1,0 +1,19 @@
+# Single catch-all entrypoint: everything through the proxy Service
+# (which owns / and /api/* routing). No host rule: the demo reaches the
+# cluster by node IP, where SNI-based routing has nothing to match on.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: proxy
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: proxy
+                port:
+                  number: 80

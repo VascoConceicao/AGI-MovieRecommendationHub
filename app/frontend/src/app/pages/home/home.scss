@@ -1,0 +1,7 @@
+.home-page { max-width: 1050px; margin: 0 auto; padding: 35px 25px; }
+header { display: flex; justify-content: space-between; gap: 20px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--dark-cyan); padding-bottom: 16px; }
+.account-actions { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+.profile-link { display: block; border: 2px solid transparent; border-radius: 50%; padding: 3px; }
+.profile-link img { display: block; border-radius: 50%; }
+.profile-link:hover, .profile-link.active { border-color: var(--golden-orange); }
+.profile-link:focus-visible { outline: 2px solid var(--pearl-aqua); outline-offset: 3px; }

@@ -1,0 +1,93 @@
+# Qwen inference server (llama.cpp): cluster-internal, CPU only, one request at a time (matches
+# GENERATION_MAX_RUNNING=1 in the Recommendation Service). Model: Qwen2.5-0.5B-Instruct Q4_K_M (Apache-2.0, ~0.5 GB),
+# downloaded once from Hugging Face into the inference-models volume and reused on restarts.
+# Measured on g15-worker1 (benchmark of 2026-10-15): ~63 s per generation, pod memory < 900 MiB.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inference
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate            # never two copies at once: a second copy would compete for the same two vCPUs
+  selector:
+    matchLabels:
+      app: inference
+  template:
+    metadata:
+      labels:
+        app: inference
+    spec:
+      # Prefer g15-worker1: it already holds the llama.cpp image and its node-local model cache. Only a preference, so a
+      # full node never blocks scheduling.
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: ["g15-worker1"]
+      terminationGracePeriodSeconds: 30
+      automountServiceAccountToken: false      # the server never talks to the Kubernetes API
+      containers:
+        - name: llama-server
+          # Pinned by digest: the exact image whose flags were verified (llama-server 0.5.0-dev, build 11277) and benchmarked.
+          image: ghcr.io/ggml-org/llama.cpp@sha256:6d607629e3dd5e85f45c43d1494648126cb3f93f2122c9cd53f43242c94cde14
+          args:
+            - --host
+            - 0.0.0.0
+            - --port
+            - "4210"
+            - -hf
+            - Qwen/Qwen2.5-0.5B-Instruct-GGUF:Q4_K_M
+            - --alias
+            - qwen2.5-0.5b-instruct
+            - --ctx-size
+            - "8192"
+            - --parallel
+            - "1"
+            - --threads
+            - "2"
+            - --no-webui
+          ports:
+            - containerPort: 4210
+          volumeMounts:
+            - name: models
+              mountPath: /root/.cache/llama.cpp        # llama-server's default download/cache directory
+          # /health answers 503 while the model downloads/loads and 200 once it can serve requests.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 4210
+            periodSeconds: 10
+            failureThreshold: 90                         # up to 15 minutes for the first download + load
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4210
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4210
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 6                          # ~3 minutes of failures: longer than one generation (~1-1.5 min)
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 1500m          # keeps >= 0.5 CPU for PostgreSQL, ingress and the other services while it runs
+              memory: 1536Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: inference-models

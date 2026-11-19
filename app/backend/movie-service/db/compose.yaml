@@ -1,0 +1,24 @@
+# Shared project name keeps standalone and root launches on the same resources.
+name: g15-databases
+
+services:
+  movie-db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: movie
+      POSTGRES_USER: movie
+      POSTGRES_PASSWORD: ${MOVIE_DB_PASSWORD:?Set MOVIE_DB_PASSWORD in this service's .env}
+    ports:
+      - "127.0.0.1:${MOVIE_DB_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U movie -d movie"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    volumes:
+      - movie-data:/var/lib/postgresql
+
+volumes:
+  movie-data:

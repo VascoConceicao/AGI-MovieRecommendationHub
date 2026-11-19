@@ -1,0 +1,9 @@
+name: g15-databases
+
+include:
+  - path: app/backend/movie-service/db/compose.yaml
+    env_file: app/backend/movie-service/.env
+  - path: app/backend/recommendation-service/db/compose.yaml
+    env_file: app/backend/recommendation-service/.env
+  - path: app/backend/user-service/db/compose.yaml
+    env_file: app/backend/user-service/.env

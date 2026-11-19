@@ -1,0 +1,74 @@
+{
+  "menuGroups": {
+    "clear: all": "Backend/Databases/Clear",
+    "clear: movie": "Backend/Databases/Clear",
+    "clear: recommendation": "Backend/Databases/Clear",
+    "clear: user": "Backend/Databases/Clear",
+    "ensure: service-movie": "Backend",
+    "ensure: service-recommendation": "Backend",
+    "ensure: service-user": "Backend",
+    "ingest: all": "Backend/Databases/Ingestion",
+    "ingest: movies": "Backend/Databases/Ingestion",
+    "ingest: users": "Backend/Databases/Ingestion",
+    "run: databases": "Backend/Databases",
+    "run: db-movie": "Backend/Databases",
+    "run: db-recommendation": "Backend/Databases",
+    "run: db-user": "Backend/Databases",
+    "run: frontend": "Frontend",
+    "run: proxy": "Frontend",
+    "run: service-movie": "Backend",
+    "run: service-recommendation": "Backend",
+    "run: service-user": "Backend",
+    "run: services": "Backend",
+    "test: all": "Tests"
+  },
+  "pins": {
+    "": [
+      {
+        "kind": "task",
+        "name": "run: app"
+      },
+      {
+        "kind": "task",
+        "name": "test: all"
+      },
+      {
+        "kind": "task",
+        "name": "stop: app"
+      },
+      {
+        "kind": "task",
+        "name": "ingest: all"
+      },
+      {
+        "kind": "task",
+        "name": "clear: all"
+      }
+    ],
+    "Backend": [],
+    "Backend/Databases": [
+      {
+        "kind": "task",
+        "name": "clear: all"
+      }
+    ],
+    "Backend/Databases/Clear": [
+      {
+        "kind": "task",
+        "name": "clear: all"
+      }
+    ],
+    "Backend/Databases/Ingestion": [
+      {
+        "kind": "task",
+        "name": "ingest: all"
+      }
+    ],
+    "Tests": [
+      {
+        "kind": "task",
+        "name": "test: all"
+      }
+    ]
+  }
+}

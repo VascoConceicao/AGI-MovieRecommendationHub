@@ -1,0 +1,9 @@
+[
+ {"case": "broad5_y2000plus",   "filters": {"count": 5, "year_from": 2000}},
+ {"case": "narrow5_adventure_epic", "filters": {"count": 5, "genres": ["Adventure"], "duration": "epic"}},
+ {"case": "broad5_1980_1999",   "filters": {"count": 5, "year_from": 1980, "year_to": 1999}},
+ {"case": "narrow5_documentary_long", "filters": {"count": 5, "genres": ["Documentary"], "duration": "long"}},
+ {"case": "broad5_before1980",  "filters": {"count": 5, "year_to": 1979}},
+ {"case": "narrow5_tvmovie_long", "filters": {"count": 5, "genres": ["TV Movie"], "duration": "long"}},
+ {"case": "broad20_y2000plus",  "filters": {"count": 20, "year_from": 2000}}
+]

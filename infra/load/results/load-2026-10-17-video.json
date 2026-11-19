@@ -1,0 +1,75 @@
+{
+  "_source": "Transcribed from the recorded terminal output of the demonstration video (the summary table load-report.py printed during the 2026-10-17 run). Every number here is the run's own; it was not written to a file at the time. The 50 and 100 client stages are present because the run executed all three - only the 50 and 100 stages are cut from the video itself.",
+  "_transcription_note": "Column values are read from the printed table. by_status is reconstructed from the exact identity requests = 200 + 502 + failures for each stage (1645+16+33=1694, 1959+17+7=1983, 1896+3940+61=5897). The key name for the non-502 failures is not recoverable from the printed table - only the count is - so they are recorded as 'timeout_or_error'.",
+  "base": "http://34.175.170.59:30080",
+  "elapsed_s": 118.0,
+  "total_requests": 9574,
+  "stages": [
+    {
+      "stage": 0,
+      "vus": 50,
+      "duration_s": 25,
+      "requests": 1694,
+      "rps": 67.8,
+      "ok_2xx": 1645,
+      "ok_rate": 0.971,
+      "timeouts": 33,
+      "by_status": {
+        "200": 1645,
+        "502": 16,
+        "timeout_or_error": 33
+      },
+      "p50_ms": 126.9,
+      "p95_ms": 1579.7,
+      "mean_ms": null
+    },
+    {
+      "stage": 1,
+      "vus": 100,
+      "duration_s": 30,
+      "requests": 1983,
+      "rps": 66.1,
+      "ok_2xx": 1959,
+      "ok_rate": 0.988,
+      "timeouts": 7,
+      "by_status": {
+        "200": 1959,
+        "502": 17,
+        "timeout_or_error": 7
+      },
+      "p50_ms": 135.7,
+      "p95_ms": 3615.8,
+      "mean_ms": null
+    },
+    {
+      "stage": 2,
+      "vus": 200,
+      "duration_s": 35,
+      "requests": 5897,
+      "rps": 168.5,
+      "ok_2xx": 1896,
+      "ok_rate": 0.321,
+      "timeouts": 61,
+      "by_status": {
+        "200": 1896,
+        "502": 3940,
+        "timeout_or_error": 61
+      },
+      "p50_ms": 333.3,
+      "p95_ms": 4689.4,
+      "mean_ms": null
+    }
+  ],
+  "threshold_check": {
+    "declared_in": "infra/load/k6-health.js",
+    "p95_ms_max": 500,
+    "failure_rate_max": 0.01,
+    "p95_verdict": "NOT met at 50, 100, 200 clients",
+    "failure_verdict": "NOT met at 50, 100, 200 clients"
+  },
+  "application_5xx_during_run": {
+    "movie-service": 0,
+    "user-service": 0,
+    "recommendation-service": 0
+  }
+}

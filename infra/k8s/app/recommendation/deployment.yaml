@@ -1,0 +1,90 @@
+# Recommendation service: same pattern as the movie service.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recommendation-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: recommendation-service
+  template:
+    metadata:
+      labels:
+        app: recommendation-service
+    spec:
+      containers:
+        - name: recommendation-service
+          image: g15-recommendation-service:local
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 4207
+          env:
+            - name: MOVIE_SERVICE_URL
+              value: "http://movie-service:4206"
+            - name: USER_SERVICE_URL
+              value: "http://user-service:4208"
+            - name: RECOMMENDATION_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: g15-db-passwords
+                  key: RECOMMENDATION_API_TOKEN
+            - name: AGENT_CONTEXT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: g15-agent-context
+                  key: AGENT_CONTEXT_TOKEN
+            - name: INFERENCE_SERVICE_URL
+              value: "http://inference:4210"
+            - name: INFERENCE_TIMEOUT_SECONDS          # CPU inference of a ~2k-token prompt takes about a minute (measured)
+              value: "300"
+            - name: INFERENCE_RETRY_TIMEOUT_SECONDS
+              value: "150"
+            - name: INFERENCE_SYNOPSIS_CHARS            # 0 = leave synopses out of the prompt (about 25% less latency)
+              value: "0"
+            - name: AUTO_INFERENCE_ENABLED              # false: background-agent (auto) jobs use the deterministic selection
+              value: "false"
+            - name: RECOMMENDATION_DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: g15-app-config
+                  key: RECOMMENDATION_DB_USER
+            - name: RECOMMENDATION_DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: g15-app-config
+                  key: RECOMMENDATION_DB_NAME
+            - name: RECOMMENDATION_DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: g15-app-config
+                  key: RECOMMENDATION_DB_HOST
+            - name: RECOMMENDATION_DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: g15-app-config
+                  key: RECOMMENDATION_DB_PORT
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: g15-db-passwords
+                  key: RECOMMENDATION_DB_PASSWORD
+            - name: DATABASE_URL
+              value: "postgresql://$(RECOMMENDATION_DB_USER):$(DB_PASSWORD)@$(RECOMMENDATION_DB_HOST):$(RECOMMENDATION_DB_PORT)/$(RECOMMENDATION_DB_NAME)"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4207
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 4207
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

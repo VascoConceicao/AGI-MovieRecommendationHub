@@ -1,0 +1,4 @@
+interface:
+  display_name: "Swagger"
+  short_description: "Create or update Swagger docs for selected APIs"
+  default_prompt: "Use $swagger to update docs for all APIs."

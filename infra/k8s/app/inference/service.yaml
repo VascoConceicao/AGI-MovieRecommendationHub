@@ -1,0 +1,14 @@
+# Cluster-internal only (ClusterIP): the public proxy and ingress do not route to it, and the NetworkPolicy limits callers.
+# Deliberately NOT labelled app.kubernetes.io/part-of=g15, so Prometheus does not try to scrape /metrics from it.
+apiVersion: v1
+kind: Service
+metadata:
+  name: inference
+spec:
+  type: ClusterIP
+  selector:
+    app: inference
+  ports:
+    - name: http
+      port: 4210
+      targetPort: 4210

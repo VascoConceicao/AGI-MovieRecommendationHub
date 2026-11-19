@@ -1,0 +1,62 @@
+# Deploy runner. Only jobs from the tools image below; its pods hold the ci-deployer token (RBAC in 20-deployer-rbac.yaml).
+gitlabUrl: https://gitlab.rnl.tecnico.ulisboa.pt
+concurrent: 1
+checkInterval: 10
+unregisterRunners: false
+rbac:
+  create: true
+  clusterWideAccess: false
+  rules:
+    - resources: [events]
+      verbs: [list, watch]
+    - resources: [pods]
+      verbs: [create, delete, get, list, watch]
+    - resources: [pods/attach, pods/exec]
+      verbs: [create, delete, get, patch]
+    - resources: [pods/log]
+      verbs: [get, list]
+    - resources: [secrets]
+      verbs: [create, delete, get, update]
+    - resources: [serviceaccounts]
+      verbs: [get]
+    - resources: [services]
+      verbs: [create, get]
+serviceAccount:
+  create: true
+resources:
+  requests: {cpu: 50m, memory: 64Mi}
+  limits: {cpu: 250m, memory: 128Mi}
+runners:
+  secret: gitlab-runner-token
+  config: |
+    [[runners]]
+      limit = 1
+      request_concurrency = 2   # job REQUESTS in flight (removes long-polling delay); parallel jobs stay capped by limit=1 and concurrent=1
+      [runners.kubernetes]
+        namespace = "g15-cd"
+        # ci-tools image (alpine + kubectl + git + curl + jq), published by master pipeline #245513 (commit 73bea44e07bf...), digest verified against the registry
+        image = "registry.rnl.tecnico.ulisboa.pt/psia/groups26/g15/ci-tools@sha256:6f8f2269134bb9241adb6d09fb5e39425359c7bda20bb5edf242c9a84a9adae4"
+        privileged = false
+        service_account = "ci-deployer"
+        automount_service_account_token = true
+        image_pull_secrets = ["gitlab-registry-read"]
+        pull_policy = ["if-not-present"]
+        allowed_pull_policies = ["if-not-present"]
+        allowed_images = ["registry.rnl.tecnico.ulisboa.pt/psia/groups26/g15/ci-tools@sha256:6f8f2269134bb9241adb6d09fb5e39425359c7bda20bb5edf242c9a84a9adae4"]
+        allowed_services = []
+        cpu_request = "50m"
+        cpu_limit = "250m"
+        memory_request = "64Mi"
+        memory_limit = "256Mi"
+        ephemeral_storage_limit = "512Mi"
+        helper_cpu_request = "50m"
+        helper_cpu_limit = "250m"
+        helper_memory_request = "64Mi"
+        helper_memory_limit = "128Mi"
+        poll_timeout = 300
+        [runners.kubernetes.pod_labels]
+          ci-role = "deploy"
+        [runners.kubernetes.build_container_security_context]
+          allow_privilege_escalation = false
+        [runners.kubernetes.helper_container_security_context]
+          allow_privilege_escalation = false
